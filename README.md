@@ -1,0 +1,2 @@
+# OCR_377DE_ARM32
+该项目为Sigmastar 377DE平台的OCR识别demo，配有前端web操作页面以及后端算法响应，搭建基本OCR文本检测识别场景。
