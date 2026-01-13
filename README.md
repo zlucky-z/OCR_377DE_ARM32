@@ -58,7 +58,7 @@ Web 服务器默认运行在 `http://localhost:8088`
 
 ```bash
 cd OCR_demo/OCR_demo
-./prog_det_ocr
+./prog_det_ocr param_snr0.ini
 ```
 
 ### 3. 访问 Web 界面
