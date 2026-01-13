@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时预览 - 新版</title>
+    <script src="axios.min.js"></script>
+    <script src="fabric.min.js"></script>
+    <link rel="stylesheet" href="fontawesome-all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: #000;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .stream-page {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #000;
+        }
+
+        /* 顶部工具栏 */
+        .stream-header {
+            background: rgba(20, 20, 30, 0.98);
+            padding: 12px 25px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .stream-header-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stream-mode-switch {
+            display: flex;
+            gap: 12px;
+            margin-left: auto;
+        }
+
+        .mode-btn {
+            padding: 8px 16px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: transparent;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .mode-btn:hover:not(.active) {
+            border-color: #667eea;
+            color: white;
+            background: rgba(102, 126, 234, 0.15);
+        }
+
+        /* 主视频区域容器 */
+        .stream-main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 视频显示区域 */
+        .stream-video-area {
+            flex: 4;
+            position: relative;
+            overflow: hidden;
+            background: #0a0a0a;
+        }
+
+        /* 合流视图（单视频流） */
+        .stream-grid-view {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0a0a0a;
+            padding: 2px;
+            position: relative;
+        }
+
+        .stream-grid-view.hidden {
+            display: none;
+        }
+
+        .stream-grid-item {
+            position: relative;
+            background: #1a1a1a;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .stream-grid-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .stream-grid-label {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 10;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .stream-grid-status {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4caf50;
+            z-index: 10;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 1);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.7;
+            }
+        }
+
+        .stream-grid-status.offline {
+            background: #f44336;
+            box-shadow: 0 0 15px rgba(244, 67, 54, 1);
+            animation: none;
+        }
+
+        .stream-grid-empty {
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        /* 文本识别结果区域 */
+        .stream-text-area {
+            flex: 1;
+            min-height: 120px;
+            max-height: 25%;
+            background: rgba(20, 20, 30, 0.98);
+            border-top: 2px solid rgba(102, 126, 234, 0.5);
+            padding: 15px 25px;
+            overflow-y: auto;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .stream-text-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .stream-text-content {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.8;
+            font-family: 'Consolas', 'Monaco', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .stream-text-item {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 3px solid #667eea;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .stream-text-item:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: translateX(3px);
+        }
+
+        .stream-text-time {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-right: 10px;
+        }
+
+        .stream-text-area::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .stream-text-area::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .stream-text-area::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 3px;
+        }
+
+        .stream-text-empty {
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 13px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* 单任务视图 */
+        .stream-single-view {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none;
+        }
+
+        .stream-single-view.active {
+            display: block;
+        }
+
+        .stream-content {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .stream-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            width: 100%;
+            height: 100%;
+            pointer-events: auto;
+        }
+
+        .stream-iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .stream-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 200;
+        }
+
+        .stream-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stream-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        /* 任务通道列表面板 */
+        .stream-task-panel {
+            width: 100%;
+            background: rgba(20, 20, 30, 0.98);
+            border-top: 1px solid rgba(102, 126, 234, 0.3);
+            padding: 12px 25px 10px;
+            height: 85px;
+            flex-shrink: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .stream-task-panel::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .stream-task-panel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+        }
+
+        .stream-task-panel::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 2px;
+        }
+
+        .stream-task-header {
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stream-task-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: nowrap;
+        }
+
+        .stream-task-item {
+            padding: 8px 16px;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.85);
+            position: relative;
+            overflow: hidden;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .stream-task-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+            z-index: -1;
+        }
+
+        .stream-task-item:hover::before {
+            width: 100%;
+        }
+
+        .stream-task-item:hover {
+            border-color: #667eea;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .stream-task-item.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 3px 15px rgba(102, 126, 234, 0.6);
+        }
+
+        .stream-task-item.active::before {
+            width: 100%;
+        }
+
+        .task-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 1);
+            flex-shrink: 0;
+        }
+
+        .stream-task-item.active .task-icon {
+            background: white;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
+        }
+
+        .stream-task-item.offline .task-icon {
+            background: #f44336;
+            box-shadow: 0 0 8px rgba(244, 67, 54, 1);
+        }
+    </style>
+</head>
+<body>
+    <div class="stream-page">
+        <!-- 顶部工具栏 -->
+        <div class="stream-header">
+            <div class="stream-header-title">
+                <i class="fas fa-video"></i>
+                实时预览
+            </div>
+            <div class="stream-mode-switch">
+                <button class="mode-btn active" id="gridModeBtn" onclick="switchToGridMode()">
+                    <i class="fas fa-th"></i>
+                    合流通道
+                </button>
+                <button class="mode-btn" id="singleModeBtn" onclick="backToGrid()">
+                    <i class="fas fa-expand"></i>
+                    返回合流
+                </button>
+            </div>
+        </div>
+
+        <!-- 主视频区域 -->
+        <div class="stream-main-container">
+            <div class="stream-video-area">
+                <!-- 合流视图（单视频流） -->
+                <div class="stream-grid-view" id="gridView">
+                    <div class="stream-grid-item" id="grid-0">
+                        <div class="stream-grid-label">通道 1</div>
+                        <div class="stream-grid-status"></div>
+                        <iframe class="stream-grid-iframe" id="grid-iframe-0"></iframe>
+                    </div>
+                </div>
+
+                <!-- 单任务视图 -->
+                <div class="stream-single-view" id="singleView">
+                    <div class="stream-content">
+                        <canvas id="stream-canvas-0" class="stream-canvas"></canvas>
+                        <iframe id="stream-iframe-0" class="stream-iframe" src=""></iframe>
+                    </div>
+                    <div class="stream-controls">
+                        <button id="stream-button" class="stream-button">
+                            <i class="fas fa-save"></i> 提交配置
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 文本识别结果区域 -->
+            <div class="stream-text-area">
+                <div class="stream-text-header">
+                    <i class="fas fa-font"></i>
+                    识别文本内容
+                </div>
+                <div class="stream-text-content" id="textContent">
+                    <div class="stream-text-empty">等待识别结果...</div>
+                </div>
+            </div>
+
+            <!-- 任务通道列表 -->
+            <div class="stream-task-panel">
+                <div class="stream-task-header">
+                    <i class="fas fa-list"></i>
+                    任务通道
+                </div>
+                <div class="stream-task-list" id="taskList">
+                    <!-- 动态加载任务列表 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'grid'; // 'grid' or 'single'
+        let currentTaskId = null;
+        let tasks = [];
+        let streamCanvas = null;
+        let polygon = null;
+        let circleList = [];
+        let points = [];
+
+        // 初始化合流视图（单视频流）
+        function initGridView() {
+            axios.get('/api/channels')
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        const channels = response.data.channels;
+                        console.log('加载通道列表:', channels);
+                        
+                        // 只显示第一个通道
+                        if (channels.length > 0) {
+                            const channel = channels[0];
+                            const iframe = document.getElementById('grid-iframe-0');
+                            const statusDot = document.querySelector('#grid-0 .stream-grid-status');
+                            const label = document.querySelector('#grid-0 .stream-grid-label');
+                            
+                            if (iframe && channel.url) {
+                                // 根据channelAssignment确定channel_id
+                                const channelId = channel.channelAssignment === '2' ? 10 : 20;
+                                iframe.src = window.location.protocol + "//" + window.location.hostname + ":8889/0_" + channelId;
+                                
+                                // 更新标签
+                                if (label) {
+                                    label.textContent = channel.name || '通道 1';
+                                }
+                                
+                                // 更新状态
+                                if (statusDot) {
+                                    statusDot.classList.remove('offline');
+                                }
+                                
+                                console.log(`通道 (${channel.name}) 已加载: ${iframe.src}`);
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('加载合流通道失败:', error);
+                });
+        }
+
+        // 加载识别文本内容
+        function loadRecognizedText() {
+            axios.get('/api/recognized-text')
+                .then(response => {
+                    if (response.data.status === 'success' && response.data.texts && response.data.texts.length > 0) {
+                        const textContent = document.getElementById('textContent');
+                        textContent.innerHTML = '';
+                        
+                        response.data.texts.forEach(item => {
+                            const textItem = document.createElement('div');
+                            textItem.className = 'stream-text-item';
+                            textItem.innerHTML = `
+                                <span class="stream-text-time">${item.time || new Date().toLocaleTimeString()}</span>
+                                <span>${item.text || ''}</span>
+                            `;
+                            textContent.appendChild(textItem);
+                        });
+                        
+                        // 自动滚动到底部
+                        const textArea = document.querySelector('.stream-text-area');
+                        textArea.scrollTop = textArea.scrollHeight;
+                    }
+                })
+                .catch(error => {
+                    console.error('加载识别文本失败:', error);
+                });
+        }
+
+        // 定期刷新识别文本内容
+        let textRefreshInterval = null;
+        function startTextRefresh() {
+            // 立即加载一次
+            loadRecognizedText();
+            // 每2秒刷新一次
+            textRefreshInterval = setInterval(loadRecognizedText, 2000);
+        }
+
+        function stopTextRefresh() {
+            if (textRefreshInterval) {
+                clearInterval(textRefreshInterval);
+                textRefreshInterval = null;
+            }
+        }
+
+        // 初始化（页面加载时不初始化Canvas，等用户点击任务时再初始化）
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTasks();
+            initGridView();
+            startTextRefresh();
+        });
+
+        // 加载任务列表
+        function loadTasks() {
+            axios.get('/api/tasks')
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        tasks = response.data.tasks;
+                        renderTaskList();
+                    }
+                })
+                .catch(error => {
+                    console.error('加载任务失败:', error);
+                });
+        }
+
+        // 渲染任务列表
+        function renderTaskList() {
+            const taskList = document.getElementById('taskList');
+            taskList.innerHTML = '';
+
+            tasks.forEach(task => {
+                const taskItem = document.createElement('div');
+                taskItem.className = 'stream-task-item';
+                if (task.status === 'stopped') {
+                    taskItem.classList.add('offline');
+                }
+                
+                taskItem.innerHTML = `
+                    <div class="task-icon"></div>
+                    <span>${task.taskNumber || '任务' + task.id}</span>
+                `;
+                
+                taskItem.onclick = () => switchToTask(task);
+                taskList.appendChild(taskItem);
+            });
+        }
+
+        // 切换到合流模式
+        function switchToGridMode() {
+            currentMode = 'grid';
+            document.getElementById('gridView').classList.remove('hidden');
+            document.getElementById('singleView').classList.remove('active');
+            document.getElementById('gridModeBtn').classList.add('active');
+            document.getElementById('singleModeBtn').classList.remove('active');
+            
+            // 清除任务选中状态
+            document.querySelectorAll('.stream-task-item').forEach(item => {
+                item.classList.remove('active');
+            });
+        }
+
+        // 切换到单任务视图
+        function switchToTask(task) {
+            currentMode = 'single';
+            currentTaskId = task.id;
+            
+            document.getElementById('gridView').classList.add('hidden');
+            document.getElementById('singleView').classList.add('active');
+            document.getElementById('gridModeBtn').classList.remove('active');
+            document.getElementById('singleModeBtn').classList.add('active');
+            
+            // 更新任务选中状态
+            document.querySelectorAll('.stream-task-item').forEach((item, index) => {
+                if (tasks[index].id === task.id) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+            
+            // 首次切换到单任务视图时初始化Canvas（此时.stream-single-view已经是visible的）
+            if (!streamCanvas) {
+                console.log('首次切换到单任务视图，初始化Canvas...');
+                setTimeout(() => {
+                    initStreamCanvas();
+                }, 150);  // 给一点时间让DOM完全渲染
+            }
+            
+            // 加载该任务的视频流
+            loadTaskStream(task);
+        }
+
+        // 返回合流视图
+        function backToGrid() {
+            switchToGridMode();
+        }
+
+        // 加载任务视频流
+        function loadTaskStream(task) {
+            // 从channels.json获取视频源URL
+            axios.get('/api/channels')
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        const channels = response.data.channels;
+                        const channel = channels.find(ch => ch.id === task.videoSourceId);
+                        
+                        if (channel) {
+                            // 根据channelAssignment确定使用哪个channel_id
+                            const channelId = channel.channelAssignment === '2' ? 10 : 20;
+                            const streamUrl = `http://192.168.1.123:8000/#/preview/video?channel=${channelId}`;
+                            
+                            document.getElementById('stream-iframe-0').src = streamUrl;
+                            
+                            // 加载多边形配置
+                            loadPolygon();
+                        }
+                    }
+                });
+        }
+
+        // 初始化Canvas（用于ROI多边形绘制）
+        function initStreamCanvas() {
+            const iframe0 = document.getElementById('stream-iframe-0');
+            const canvas0 = document.getElementById('stream-canvas-0');
+            const button = document.getElementById('stream-button');
+            
+            // 使用轮询检查iframe是否有尺寸，最多等待5秒
+            let checkCount = 0;
+            const maxChecks = 50; // 5秒 / 100ms = 50次
+            
+            const checkIframeSize = setInterval(() => {
+                checkCount++;
+                const width = iframe0.clientWidth;
+                const height = iframe0.clientHeight;
+                
+                console.log(`检查iframe尺寸 (${checkCount}/${maxChecks}):`, width, 'x', height);
+                
+                // 如果iframe有尺寸，或者超时，就初始化Canvas
+                if ((width > 0 && height > 0) || checkCount >= maxChecks) {
+                    clearInterval(checkIframeSize);
+                    
+                    if (width === 0 || height === 0) {
+                        console.warn('警告：iframe尺寸仍为0，使用容器尺寸');
+                        const container = iframe0.parentElement;
+                        const containerWidth = container.clientWidth;
+                        const containerHeight = container.clientHeight;
+                        console.log('容器尺寸:', containerWidth, 'x', containerHeight);
+                    }
+                    
+                    console.log('开始初始化Canvas...');
+                    
+                    // 销毁旧的Canvas（如果存在）
+                    if (streamCanvas) {
+                        console.log('销毁旧的Canvas实例');
+                        streamCanvas.dispose();
+                        streamCanvas = null;
+                    }
+                    
+                    // 使用iframe尺寸（如果为0则使用父容器尺寸）
+                    let finalWidth = width;
+                    let finalHeight = height;
+                    
+                    if (finalWidth === 0 || finalHeight === 0) {
+                        const container = iframe0.parentElement;
+                        finalWidth = container.clientWidth;
+                        finalHeight = container.clientHeight;
+                    }
+                    
+                    console.log('最终Canvas尺寸:', finalWidth, 'x', finalHeight);
+                    
+                    // 设置Canvas元素的尺寸属性
+                    canvas0.width = finalWidth;
+                    canvas0.height = finalHeight;
+                    canvas0.style.width = finalWidth + 'px';
+                    canvas0.style.height = finalHeight + 'px';
+                    
+                    console.log('Canvas DOM元素已设置尺寸:', canvas0.width, 'x', canvas0.height);
+                    
+                    streamCanvas = new fabric.Canvas('stream-canvas-0', {
+                        width: finalWidth,
+                        height: finalHeight,
+                        selection: false
+                    });
+                    
+                    console.log('Fabric Canvas已创建，尺寸:', streamCanvas.width, 'x', streamCanvas.height);
+                    
+                    // 初始化Canvas内容和事件监听
+                    initCanvasContent();
+                }
+            }, 100); // 每100ms检查一次
+            
+            // 将原来的初始化逻辑移到这个函数中
+            function initCanvasContent() {
+                // 加载并绘制多边形的函数
+                function loadAndDrawPolygon() {
+                axios.get("/stream/polygon/0").then((res) => {
+                    console.log('加载红色范围框数据:', res.data);
+                    
+                    if (!res.data || !res.data.points || res.data.points.length === 0) {
+                        console.warn('警告：红色范围框数据为空');
+                        return;
+                    }
+                    
+                    // 清除旧的多边形和圆点
+                    if (polygon) {
+                        streamCanvas.remove(polygon);
+                    }
+                    circleList.forEach(circle => streamCanvas.remove(circle));
+                    circleList = [];
+                    
+                    // 调试：打印iframe和canvas尺寸
+                    console.log('iframe尺寸:', iframe0.clientWidth, 'x', iframe0.clientHeight);
+                    console.log('Canvas尺寸:', streamCanvas.width, 'x', streamCanvas.height);
+                    console.log('streamWidth常量:', streamWidth);
+                    
+                    // 重新计算点的位置
+                    points = [];
+                    res.data.points.forEach((point, index) => {
+                        // 裁剪坐标到有效范围内（防止超出视频边界）
+                        const clampedPoint = {
+                            x: Math.max(0, Math.min(point.x, streamWidth)),
+                            y: Math.max(0, Math.min(point.y, streamHeight))
+                        };
+                        
+                        // 如果坐标被裁剪了，输出警告
+                        if (clampedPoint.x !== point.x || clampedPoint.y !== point.y) {
+                            console.warn(`点${index} 超出范围: 原始(${point.x},${point.y}) → 裁剪后(${clampedPoint.x},${clampedPoint.y})`);
+                        }
+                        
+                        const canvasPoint = streamPointToCanvasPoint(iframe0, clampedPoint);
+                        console.log(`点${index} - 原始:(${point.x},${point.y}) → Canvas:(${canvasPoint.x.toFixed(2)},${canvasPoint.y.toFixed(2)})`);
+                        points.push(canvasPoint);
+                    });
+
+                    // 创建新的多边形
+                    polygon = new fabric.Polygon(
+                        points,
+                        {
+                            fill: false,
+                            stroke: 'red',
+                            strokeWidth: 4,
+                            objectCaching: false,
+                            selectable: false,
+                            evented: false,
+                        }
+                    );
+
+                    // 创建新的圆点（可拖动）
+                    points.forEach((item, index) => {
+                        const circle = new fabric.Circle({
+                            left: item.x,
+                            top: item.y,
+                            strokeWidth: 2,
+                            radius: 8,  // 增大到8px，更容易点击
+                            fill: 'rgba(255, 0, 0, 0.7)',  // 红色半透明填充
+                            stroke: '#fff',  // 白色边框
+                            originX: 'center',
+                            originY: 'center',
+                            hasControls: false,
+                            hasBorders: false,
+                            selectable: true,  // 明确设置为可选择
+                            hoverCursor: 'move',  // 鼠标悬停时显示移动光标
+                            cid: `circle-${index}`
+                        });
+                        circleList.push(circle);
+                        console.log(`创建圆点 ${index}: 位置(${item.x.toFixed(2)}, ${item.y.toFixed(2)})`);
+                    });
+
+                    // 添加到canvas并渲染
+                    streamCanvas.add(polygon, ...circleList);
+                    streamCanvas.renderAll();
+                    console.log('红色范围框已添加到canvas，点数:', points.length);
+                }).catch((error) => {
+                    console.error('加载红色范围框失败:', error);
+                });
+            }
+
+            // 初始加载
+            loadPolygon();
+
+            // 定期检查多边形是否还在canvas上，如果不在则重新加载
+            setInterval(() => {
+                if (!polygon || !streamCanvas.getObjects().includes(polygon)) {
+                    console.warn('检测到多边形丢失，重新加载...');
+                    loadPolygon();
+                }
+            }, 3000);
+
+            // 监听对象移动事件
+            streamCanvas.on('object:moving', (e) => {
+                let target = e.target;
+                if ('cid' in target && target.cid.match(RegExp(/circle-/))) {
+                    let index = target.cid.split('-')[1];
+                    if (polygon && polygon.points) {
+                        polygon.points[index].x = target.left;
+                        polygon.points[index].y = target.top;
+                        streamCanvas.renderAll();
+                    }
+                }
+            });
+
+            // 提交配置按钮
+            button.onclick = () => {
+                const streamPoints = [];
+
+                points.forEach((point, index) => {
+                    streamPoints.push(canvasPointToStreamPoint(iframe0, point));
+                });
+
+                axios({
+                    method: "post",
+                    url: "stream/polygon/0",
+                    headers: { 'Content-Type': 'application/json' },
+                    data: { points: { ...streamPoints } }
+                }).then((res) => {
+                    if (res.status == 200) {
+                        alert('配置提交成功！');
+                    }
+                });
+            };
+            
+            // 添加窗口resize监听器，动态调整Canvas和红框
+            const iframe0 = document.getElementById('stream-iframe-0');
+            const canvas0 = document.getElementById('stream-canvas-0');
+            let resizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    if (streamCanvas && iframe0) {
+                        // 获取iframe的实际显示尺寸
+                        const newWidth = iframe0.clientWidth;
+                        const newHeight = iframe0.clientHeight;
+                        
+                        console.log('窗口resize，调整Canvas尺寸为:', newWidth, 'x', newHeight);
+                        
+                        // 调整Canvas尺寸
+                        canvas0.width = newWidth;
+                        canvas0.height = newHeight;
+                        streamCanvas.setDimensions({
+                            width: newWidth,
+                            height: newHeight
+                        });
+                        
+                        // 重新加载多边形
+                        loadAndDrawPolygon();
+                    }
+                }, 300);
+            });
+            } // 关闭initCanvasContent函数
+        }
+
+        function loadPolygon() {
+            axios.get("/stream/polygon/0").then((res) => {
+                console.log('加载红色范围框数据:', res.data);
+                
+                if (!res.data || !res.data.points || res.data.points.length === 0) {
+                    console.warn('警告：红色范围框数据为空');
+                    return;
+                }
+                
+                // 清除旧的多边形和圆点
+                if (polygon) {
+                    streamCanvas.remove(polygon);
+                }
+                circleList.forEach(circle => streamCanvas.remove(circle));
+                circleList = [];
+                
+                // 重新计算点的位置
+                const iframe0 = document.getElementById('stream-iframe-0');
+                points = [];
+                res.data.points.forEach((point, index) => {
+                    // 裁剪坐标到有效范围内（防止超出视频边界）
+                    const clampedPoint = {
+                        x: Math.max(0, Math.min(point.x, streamWidth)),
+                        y: Math.max(0, Math.min(point.y, streamHeight))
+                    };
+                    
+                    // 如果坐标被裁剪了，输出警告
+                    if (clampedPoint.x !== point.x || clampedPoint.y !== point.y) {
+                        console.warn(`点${index} 超出范围: 原始(${point.x},${point.y}) → 裁剪后(${clampedPoint.x},${clampedPoint.y})`);
+                    }
+                    
+                    points.push(streamPointToCanvasPoint(iframe0, clampedPoint));
+                });
+
+                // 创建新的多边形
+                polygon = new fabric.Polygon(
+                    points,
+                    {
+                        fill: false,
+                        stroke: 'red',
+                        strokeWidth: 4,
+                        objectCaching: false,
+                        selectable: false,
+                        evented: false,
+                    }
+                );
+
+                // 创建新的圆点（可拖动）
+                points.forEach((item, index) => {
+                    const circle = new fabric.Circle({
+                        left: item.x,
+                        top: item.y,
+                        strokeWidth: 2,
+                        radius: 8,  // 增大到8px，更容易点击
+                        fill: 'rgba(255, 0, 0, 0.7)',  // 红色半透明填充
+                        stroke: '#fff',  // 白色边框
+                        originX: 'center',
+                        originY: 'center',
+                        hasControls: false,
+                        hasBorders: false,
+                        selectable: true,  // 明确设置为可选择
+                        hoverCursor: 'move',  // 鼠标悬停时显示移动光标
+                        cid: `circle-${index}`
+                    });
+                    circleList.push(circle);
+                    console.log(`创建圆点 ${index}: 位置(${item.x.toFixed(2)}, ${item.y.toFixed(2)})`);
+                });
+
+                // 添加到canvas并渲染
+                streamCanvas.add(polygon, ...circleList);
+                streamCanvas.renderAll();
+                console.log('红色范围框已添加到canvas，点数:', points.length);
+            }).catch((error) => {
+                console.error('加载红色范围框失败:', error);
+            });
+        }
+
+        // 坐标转换函数
+        const streamWidth = 1920;
+        const streamHeight = 1080;  // 视频流原始高度（根据实际分辨率调整）
+
+        function canvasPointToStreamPoint(iframe, point) {
+            const zmX = streamWidth / iframe.clientWidth;
+            const zmY = streamHeight / iframe.clientHeight;
+            return { 
+                x: parseInt(point.x * zmX), 
+                y: parseInt(point.y * zmY) 
+            };
+        }
+
+        function streamPointToCanvasPoint(iframe, point) {
+            const zmX = iframe.clientWidth / streamWidth;
+            const zmY = iframe.clientHeight / streamHeight;
+            console.log(`坐标转换: 原始(${point.x},${point.y}) zmX=${zmX.toFixed(3)} zmY=${zmY.toFixed(3)} → Canvas(${(point.x * zmX).toFixed(2)},${(point.y * zmY).toFixed(2)})`);
+            return { 
+                x: (point.x * zmX), 
+                y: (point.y * zmY) 
+            };
+        }
+    </script>
+</body>
+</html>
+

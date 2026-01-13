@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>版本升级</title>
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <style>
+        html,
+        body {
+            margin: 0;
+            height: 100%;
+            background-color: #f8f9fa;
+            overflow: hidden;
+        }
+
+        /* 顶部栏样式 */
+      .top-bar {
+            background-color: #343a40;
+            color: #fff;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+      .upgrade-container {
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            margin-top: 0px;
+            height: calc(100% - 60px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 30px;
+        }
+
+      .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #555;
+        }
+
+      .input-group {
+            width: 300px;
+        }
+
+      .btn {
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+      .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+      .btn-primary:hover {
+            background-color: #0069d9;
+            border-color: #0062cc;
+        }
+
+      .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+
+      .btn-secondary:hover {
+            background-color: #5a6268;
+            border-color: #545b62;
+        }
+
+      .btn-container {
+            margin-top: 20px;
+            display: flex;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="top-bar">
+        <span>版本升级</span>
+        <button class="btn btn-secondary" onclick="window.location.href='index1.html'">返回</button>
+    </div>
+    <div class="upgrade-container">
+        <form>
+            <div class="form-group">
+                <label for="firmware-version">当前版本：</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="firmware-version" placeholder="显示当前版本号" readonly>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="new-firmware-file">选择文件：</label>
+                <div class="input-group">
+                    <input type="file" class="form-control" id="new-firmware-file">
+                </div>
+            </div>
+        </form>
+        <div class="btn-container">
+            <button class="btn btn-primary">开始升级</button>
+        </div>
+    </div>
+</body>
+
+</html>

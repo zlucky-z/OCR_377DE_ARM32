@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基本信息</title>
+    <script src="axios.min.js"></script>
+    <!-- 引入 Bootstrap 的 CSS 和 JavaScript -->
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <script src="bootstrap.bundle.min.js"></script>
+    <!-- 引入 Chart.js -->
+    <script src="chart.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+
+        .content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .info-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .info-table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-table td:first-child {
+            color: #666;
+            width: 150px;
+        }
+
+        .info-table td:nth-child(2) {
+            font-weight: 500;
+        }
+
+        .info-table td:nth-child(3) {
+            color: #666;
+            width: 150px;
+        }
+
+        .info-table td:nth-child(4) {
+            font-weight: 500;
+        }
+
+        .chart-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .btn-group button {
+            margin: 5px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .status-authorized {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-active {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        /* 侧边栏切换按钮 */
+        .sidebar-toggle {
+            position: fixed;
+            left: 10px;
+            top: 10px;
+            z-index: 1000;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s;
+        }
+
+        .sidebar-toggle:hover {
+            background-color: #555;
+        }
+
+        /* 侧边栏容器 */
+        .sidebar-container {
+            transition: margin-left 0.3s;
+            margin-left: 0;
+        }
+
+        .sidebar-container.hidden {
+            margin-left: -280px;
+        }
+
+        .content.expanded {
+            margin-left: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 侧边栏切换按钮 -->
+    <button id="sidebar-toggle" class="sidebar-toggle">☰</button>
+
+    <div class="d-flex flex-column flex-shrink-0 p-3 text-bg-dark sidebar-container" style="width: 280px;">
+        <a href="#" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none" onclick="return false;">
+            <svg class="bi pe-none me-2" width="40" height="32">
+                <use xlink:href="#bootstrap"></use>
+            </svg>
+            <span class="fs-4">预览界面</span>
+        </a>
+        <hr>
+        <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+                <a href="#" id="mainLink" class="nav-link text-white">
+                    <svg class="bi pe-none me-2" width="16" height="16">
+                        <use xlink:href="#home"></use>
+                    </svg>
+                    实时预览
+                </a>
+            </li>
+            <li>
+                <a href="#" id="homeInfoLink" class="nav-link active" aria-current="page">
+                    <svg class="bi pe-none me-2" width="16" height="16">
+                        <use xlink:href="#info-circle"></use>
+                    </svg>
+                    基本信息
+                </a>
+            </li>
+            <li>
+                <a href="#" id="CmeraConfigLink" class="nav-link text-white">
+                    <svg class="bi pe-none me-2" width="16" height="16">
+                        <use xlink:href="#people-circle"></use>
+                    </svg>
+                    通道管理
+                </a>
+            </li>
+            <li>
+                <a href="#" id="smartConfigLink" class="nav-link text-white">
+                    <svg class="bi pe-none me-2" width="16" height="16">
+                        <use xlink:href="#speedometer2"></use>
+                    </svg>
+                    智能设置
+                </a>
+            </li>
+            <li>
+                <a href="#" id="networkConfigLink" class="nav-link text-white">
+                    <svg class="bi pe-none me-2" width="16" height="16">
+                        <use xlink:href="#table"></use>
+                    </svg>
+                    网络配置
+                </a>
+            </li>
+            <li>
+                <a href="#" id="alarmConfigLink" class="nav-link text-white">
+                    <svg class="bi pe-none me-2" width="16" height="16">
+                        <use xlink:href="#grid"></use>
+                    </svg>
+                    报警设置
+                </a>
+            </li>
+            <li>
+                <a href="#" id="userConfigLink" class="nav-link text-white">
+                    <svg class="bi pe-none me-2" width="16" height="16">
+                        <use xlink:href="#people-circle"></use>
+                    </svg>
+                    用户设置
+                </a>
+            </li>
+            <li>
+                <a href="#" id="updataConfigLink" class="nav-link text-white">
+                    <svg class="bi pe-none me-2" width="16" height="16">
+                        <use xlink:href="#people-circle"></use>
+                    </svg>
+                    固件升级
+                </a>
+            </li>
+            <li>
+                <a href="#" id="tfConfigLink" class="nav-link text-white">
+                    <svg class="bi pe-none me-2" width="16" height="16">
+                        <use xlink:href="#people-circle"></use>
+                    </svg>
+                    TF卡应用
+                </a>
+            </li>
+        </ul>
+        <hr>
+        <div class="dropdown">
+            <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle"
+                data-bs-toggle="dropdown" aria-expanded="false">
+                <img src="user.jpg" alt="" width="32" height="32" class="rounded-circle me-2">
+                <strong>Admin</strong>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
+                <li><a class="dropdown-item" href="#">更新项目</a></li>
+                <li><a class="dropdown-item" href="#">系统设置</a></li>
+                <li><a class="dropdown-item" href="#">打开文件</a></li>
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+                <li><a class="dropdown-item" href="index.html">退出登录</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="info-card">
+            <table class="info-table">
+                <tr>
+                    <td>设备标识</td>
+                    <td id="deviceId">-</td>
+                    <td>授权状态</td>
+                    <td><span id="authStatus" class="status-badge status-authorized">已授权</span></td>
+                </tr>
+                <tr>
+                    <td>资源信息</td>
+                    <td id="storageInfo">-</td>
+                    <td>系统版本</td>
+                    <td id="systemVersion">-</td>
+                </tr>
+                <tr>
+                    <td>软件版本</td>
+                    <td id="softwareVersion">-</td>
+                    <td>盒子时间</td>
+                    <td id="systemTime">-</td>
+                </tr>
+                <tr>
+                    <td>GPS</td>
+                    <td id="gpsInfo">-</td>
+                    <td>芯片温度</td>
+                    <td id="chipTemp">-</td>
+                </tr>
+            </table>
+            <div style="margin-top: 20px; text-align: center;">
+                <button class="btn btn-warning" onclick="queryDeviceInfo()">查询设备</button>
+                <button class="btn btn-success" onclick="updateFirmware()">更新固件</button>
+                <button class="btn btn-danger" onclick="rebootDevice()">重启设备</button>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">芯片温度 (℃)</div>
+            <canvas id="tempChart" height="80"></canvas>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">系统资源使用率 (%)</div>
+            <canvas id="resourceChart" height="80"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // 初始化温度图表
+        const tempCtx = document.getElementById('tempChart').getContext('2d');
+        const tempChart = new Chart(tempCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '芯片温度',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 0,
+                        max: 100
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true
+                    }
+                }
+            }
+        });
+
+        // 初始化资源使用率图表
+        const resourceCtx = document.getElementById('resourceChart').getContext('2d');
+        const resourceChart = new Chart(resourceCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'CPU 使用率',
+                        data: [],
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        tension: 0.4,
+                        fill: false
+                    },
+                    {
+                        label: 'NPU 使用率',
+                        data: [],
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        tension: 0.4,
+                        fill: false
+                    },
+                    {
+                        label: 'VPU 使用率',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        tension: 0.4,
+                        fill: false
+                    },
+                    {
+                        label: '内存使用率',
+                        data: [],
+                        borderColor: 'rgb(255, 206, 86)',
+                        backgroundColor: 'rgba(255, 206, 86, 0.1)',
+                        tension: 0.4,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        min: 0,
+                        max: 100
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true
+                    }
+                }
+            }
+        });
+
+        // 数据点最大数量
+        const MAX_DATA_POINTS = 20;
+
+        // 更新图表数据
+        function updateChartData(chart, label, ...values) {
+            // 添加新的时间标签
+            chart.data.labels.push(label);
+            
+            // 添加新数据点
+            values.forEach((value, index) => {
+                chart.data.datasets[index].data.push(value);
+            });
+
+            // 保持数据点数量在限制范围内
+            if (chart.data.labels.length > MAX_DATA_POINTS) {
+                chart.data.labels.shift();
+                chart.data.datasets.forEach(dataset => {
+                    dataset.data.shift();
+                });
+            }
+
+            chart.update('none'); // 'none' 模式可以提高性能
+        }
+
+        // 获取芯片温度
+        async function getChipTemp() {
+            try {
+                const response = await axios.get('/api/chip_temp');
+                return response.data.temperature;
+            } catch (error) {
+                console.error('获取芯片温度失败:', error);
+                return 50; // 返回默认值
+            }
+        }
+
+        // 获取系统资源使用率
+        async function getSystemResources() {
+            try {
+                // 获取CPU和内存
+                const resourceResponse = await axios.get('/api/system_resources');
+                
+                // 获取真实的NPU和VPU使用率
+                let npuUsage = 0;
+                let vpuUsage = 0;
+                try {
+                    const npuResponse = await axios.get('/api/system/npu');
+                    if (npuResponse.data.status === 'success') {
+                        npuUsage = npuResponse.data.npuUsage || 0;
+                        vpuUsage = npuResponse.data.vpuUsage || 0;
+                    }
+                } catch (npuError) {
+                    console.error('获取NPU/VPU使用率失败:', npuError);
+                }
+                
+                return {
+                    cpu: resourceResponse.data.cpu || 0,
+                    npu: npuUsage,
+                    vpu: vpuUsage,
+                    memory: resourceResponse.data.memory || 0
+                };
+            } catch (error) {
+                console.error('获取系统资源失败:', error);
+                return { cpu: 0, npu: 0, vpu: 0, memory: 0 };
+            }
+        }
+
+        // 获取设备信息
+        async function getDeviceInfo() {
+            try {
+                const response = await axios.get('/api/device_info');
+                const data = response.data;
+                
+                document.getElementById('deviceId').textContent = data.deviceId || '-';
+                document.getElementById('storageInfo').textContent = data.storage || '-';
+                document.getElementById('systemVersion').textContent = data.systemVersion || '-';
+                document.getElementById('softwareVersion').textContent = data.softwareVersion || '-';
+                document.getElementById('gpsInfo').textContent = data.gps || '-';
+            } catch (error) {
+                console.error('获取设备信息失败:', error);
+            }
+        }
+
+        // 更新系统时间
+        function updateSystemTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleString('zh-CN', { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit',
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: false 
+            });
+            document.getElementById('systemTime').textContent = timeStr;
+        }
+
+        // 定时更新数据
+        async function updateData() {
+            const now = new Date();
+            const timeLabel = now.toLocaleTimeString('zh-CN', { hour12: false });
+
+            // 获取芯片温度
+            const temp = await getChipTemp();
+            document.getElementById('chipTemp').textContent = temp.toFixed(1) + ' ℃';
+            updateChartData(tempChart, timeLabel, temp);
+
+            // 获取系统资源
+            const resources = await getSystemResources();
+            updateChartData(resourceChart, timeLabel, resources.cpu, resources.npu, resources.vpu, resources.memory);
+
+            // 更新系统时间
+            updateSystemTime();
+        }
+
+        // 查询设备信息
+        function queryDeviceInfo() {
+            getDeviceInfo();
+            alert('设备信息已刷新');
+        }
+
+        // 更新固件
+        function updateFirmware() {
+            if (confirm('确定要更新固件吗？')) {
+                alert('固件更新功能开发中...');
+            }
+        }
+
+        // 重启设备
+        function rebootDevice() {
+            if (confirm('确定要重启设备吗？')) {
+                axios.post('/api/reboot').then(() => {
+                    alert('设备正在重启...');
+                }).catch(error => {
+                    alert('重启失败: ' + error.message);
+                });
+            }
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            // 获取初始设备信息
+            getDeviceInfo();
+            
+            // 立即更新一次数据
+            updateData();
+            
+            // 每2秒更新一次数据
+            setInterval(updateData, 2000);
+        };
+
+        // 侧边栏切换功能
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebarContainer = document.querySelector('.sidebar-container');
+        const content = document.querySelector('.content');
+        
+        sidebarToggle.addEventListener('click', function() {
+            sidebarContainer.classList.toggle('hidden');
+            if (sidebarContainer.classList.contains('hidden')) {
+                sidebarToggle.style.left = '10px';
+            } else {
+                sidebarToggle.style.left = '10px';
+            }
+        });
+
+        // 侧边栏导航
+        document.getElementById('mainLink').addEventListener('click', function (event) {
+            event.preventDefault();
+            window.location.href = 'index1.html';
+        });
+        document.getElementById('homeInfoLink').addEventListener('click', function (event) {
+            event.preventDefault();
+            window.location.href = 'home.html';
+        });
+        document.getElementById('networkConfigLink').addEventListener('click', function (event) {
+            event.preventDefault();
+            window.location.href = 'setting.html';
+        });
+        document.getElementById('userConfigLink').addEventListener('click', function (event) {
+            event.preventDefault();
+            window.location.href = 'user.html';
+        });
+        document.getElementById('smartConfigLink').addEventListener('click', function (event) {
+            event.preventDefault();
+            window.location.href = 'smart.html';
+        });
+        document.getElementById('alarmConfigLink').addEventListener('click', function (event) {
+            event.preventDefault();
+            window.location.href = 'alarm.html';
+        });
+        document.getElementById('updataConfigLink').addEventListener('click', function (event) {
+            event.preventDefault();
+            window.location.href = 'updata.html';
+        });
+        document.getElementById('CmeraConfigLink').addEventListener('click', function (event) {
+            event.preventDefault();
+            window.location.href = 'CmeraIp.html';
+        });
+        document.getElementById('tfConfigLink').addEventListener('click', function (event) {
+            event.preventDefault();
+            window.location.href = 'TF.html';
+        });
+
+        // Bootstrap tooltip 初始化
+        (() => {
+            'use strict'
+            const tooltipTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            tooltipTriggerList.forEach(tooltipTriggerEl => {
+                new bootstrap.Tooltip(tooltipTriggerEl)
+            })
+        })();
+    </script>
+</body>
+
+</html>

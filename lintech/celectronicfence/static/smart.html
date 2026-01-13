@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>智能配置页面</title>
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" href="fontawesome-all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .container {
+            max-width: 95%;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        @media (min-width: 1400px) {
+            .container {
+                max-width: 1600px;
+            }
+        }
+
+        /* 头部卡片 */
+        .header-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .header-title {
+            flex: 1;
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+
+        .header-title p {
+            font-size: 14px;
+            color: #999;
+            margin: 5px 0 0 0;
+        }
+
+        /* 设置卡片 */
+        .setting-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .form-label i {
+            color: #667eea;
+            margin-right: 8px;
+        }
+
+        .form-control {
+            width: 100%;
+            max-width: 500px;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-control.invalid-input {
+            border-color: #ff5252;
+            background-color: #ffebee;
+        }
+
+        .form-help {
+            font-size: 12px;
+            color: #999;
+            margin-top: 8px;
+        }
+
+        /* 按钮容器 */
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 25px;
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(17, 153, 142, 0.4);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(17, 153, 142, 0.6);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(240, 147, 251, 0.6);
+        }
+
+        /* 批量操作卡片 */
+        .batch-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 25px;
+            color: white;
+        }
+
+        .batch-card .section-title {
+            color: white;
+            border-bottom-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .batch-card .section-title i {
+            color: white;
+        }
+
+        .batch-description {
+            font-size: 14px;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+
+        .batch-card .btn {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .batch-card .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .batch-card .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .batch-card .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 提示信息 */
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: start;
+            gap: 12px;
+        }
+
+        .info-box i {
+            color: #2196f3;
+            font-size: 20px;
+            margin-top: 2px;
+        }
+
+        .info-content {
+            flex: 1;
+        }
+
+        .info-content h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1976d2;
+            margin: 0 0 5px 0;
+        }
+
+        .info-content p {
+            font-size: 13px;
+            color: #0d47a1;
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header-card">
+            <div class="header-icon">
+                <i class="fas fa-brain"></i>
+            </div>
+            <div class="header-title">
+                <h1>智能配置</h1>
+                <p>配置检测阈值和批量操作设置</p>
+            </div>
+        </div>
+
+        <!-- 提示信息 -->
+        <div class="info-box">
+            <i class="fas fa-info-circle"></i>
+            <div class="info-content">
+                <h4>配置说明</h4>
+                <p>阈值范围为 0-1.0，数值越小检测越灵敏。建议设置为 0.3-0.5 之间以获得最佳检测效果。</p>
+            </div>
+        </div>
+
+        <!-- 阈值设置 -->
+        <div class="setting-card">
+            <div class="section-title">
+                <i class="fas fa-sliders-h"></i>
+                阈值调整
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-user"></i>
+                    人员检测阈值
+                </label>
+                <input type="number" 
+                       class="form-control" 
+                       id="threshold" 
+                       min="0" 
+                       max="1" 
+                       step="0.1"
+                       placeholder="输入阈值（0-1.0）">
+                <div class="form-help">设置人员检测的置信度阈值，范围：0 - 1.0</div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="saveSettings()">
+                    <i class="fas fa-save"></i>
+                    保存设置
+                </button>
+            </div>
+        </div>
+
+        <!-- 批量操作 -->
+        <div class="batch-card">
+            <div class="section-title">
+                <i class="fas fa-tasks"></i>
+                批量操作
+            </div>
+            
+            <div class="batch-description">
+                快速对所有检测类别进行统一配置
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-success" onclick="unlockAllThresholds()">
+                    <i class="fas fa-unlock"></i>
+                    一键开启（设为 0.3）
+                </button>
+                <button class="btn btn-warning" onclick="resetAllThresholds()">
+                    <i class="fas fa-ban"></i>
+                    一键关闭（设为 1.0）
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function () {
+            // 绑定输入验证事件
+            document.getElementById('threshold').oninput = function () {
+                const thresholdInput = document.getElementById('threshold');
+                const thresholdValue = thresholdInput.value;
+                if (thresholdValue < 0 || thresholdValue > 1) {
+                    thresholdInput.classList.add('invalid-input');
+                } else {
+                    thresholdInput.classList.remove('invalid-input');
+                }
+            };
+        };
+
+        function saveSettings() {
+            const thresholdValueStr = document.getElementById('threshold').value;
+            const thresholdValue = parseFloat(thresholdValueStr);
+            if (!isNaN(thresholdValue) && thresholdValue >= 0 && thresholdValue <= 1.0) {
+                setPersonThreshold(thresholdValue);
+            } else {
+                alert('输入的阈值必须是0到1.0之间的有效数字！');
+            }
+        }
+
+        function setPersonThreshold(value) {
+            const jsonData = {
+                "person": value
+            };
+            const jsonFilePath = 'http://192.168.1.193:8088/get_json_file';
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', jsonFilePath, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify(jsonData));
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        alert('设置保存成功！');
+                    } else {
+                        alert('保存设置失败！错误代码：' + xhr.status);
+                    }
+                }
+            };
+        }
+
+        function unlockAllThresholds() {
+            if (confirm('确定要将所有类别都开启吗？这将把所有检测类别的阈值设置为 0.3')) {
+                const allClasses = {
+                    "aeroplane": 0.3, "apple": 0.3, "backpack": 0.3, "banana": 0.3,
+                    "baseball bat": 0.3, "baseball glove": 0.3, "bear": 0.3, "bed": 0.3,
+                    "bench": 0.3, "bicycle": 0.3, "bird": 0.3, "boat": 0.3,
+                    "book": 0.3, "bottle": 0.3, "bowl": 0.3, "broccoli": 0.3,
+                    "bus": 0.3, "cake": 0.3, "car": 0.3, "carrot": 0.3,
+                    "cat": 0.3, "cell phone": 0.3, "chair": 0.3, "clock": 0.3,
+                    "cow": 0.3, "cup": 0.3, "diningtable": 0.3, "dog": 0.3,
+                    "donut": 0.3, "elephant": 0.3, "fire hydrant": 0.3, "fork": 0.3,
+                    "frisbee": 0.3, "giraffe": 0.3, "hair drier": 0.3, "handbag": 0.3,
+                    "horse": 0.3, "hot dog": 0.3, "keyboard": 0.3, "kite": 0.3,
+                    "knife": 0.3, "laptop": 0.3, "microwave": 0.3, "motorbike": 0.3,
+                    "mouse": 0.3, "orange": 0.3, "oven": 0.3, "parking meter": 0.3,
+                    "person": 0.3, "pizza": 0.3, "pottedplant": 0.3, "refrigerator": 0.3,
+                    "remote": 0.3, "sandwich": 0.3, "scissors": 0.3, "sheep": 0.3,
+                    "sink": 0.3, "skateboard": 0.3, "skis": 0.3, "snowboard": 0.3,
+                    "sofa": 0.3, "spoon": 0.3, "sports ball": 0.3, "stop sign": 0.3,
+                    "suitcase": 0.3, "surfboard": 0.3, "teddy bear": 0.3, "tennis racket": 0.3,
+                    "tie": 0.3, "toaster": 0.3, "toilet": 0.3, "toothbrush": 0.3,
+                    "traffic light": 0.3, "train": 0.3, "truck": 0.3, "tvmonitor": 0.3,
+                    "umbrella": 0.3, "vase": 0.3, "wine glass": 0.3, "zebra": 0.3
+                };
+                sendBatchUpdate(allClasses, '一键开启操作');
+            }
+        }
+
+        function resetAllThresholds() {
+            if (confirm('确定要将所有类别都关闭吗？这将把所有检测类别的阈值设置为 1.0')) {
+                const resetClasses = {
+                    "aeroplane": 1.0, "apple": 1.0, "backpack": 1.0, "banana": 1.0,
+                    "baseball bat": 1.0, "baseball glove": 1.0, "bear": 1.0, "bed": 1.0,
+                    "bench": 1.0, "bicycle": 1.0, "bird": 1.0, "boat": 1.0,
+                    "book": 1.0, "bottle": 1.0, "bowl": 1.0, "broccoli": 1.0,
+                    "bus": 1.0, "cake": 1.0, "car": 1.0, "carrot": 1.0,
+                    "cat": 1.0, "cell phone": 1.0, "chair": 1.0, "clock": 1.0,
+                    "cow": 1.0, "cup": 1.0, "diningtable": 1.0, "dog": 1.0,
+                    "donut": 1.0, "elephant": 1.0, "fire hydrant": 1.0, "fork": 1.0,
+                    "frisbee": 1.0, "giraffe": 1.0, "hair drier": 1.0, "handbag": 1.0,
+                    "horse": 1.0, "hot dog": 1.0, "keyboard": 1.0, "kite": 1.0,
+                    "knife": 1.0, "laptop": 1.0, "microwave": 1.0, "motorbike": 1.0,
+                    "mouse": 1.0, "orange": 1.0, "oven": 1.0, "parking meter": 1.0,
+                    "person": 1.0, "pizza": 1.0, "pottedplant": 1.0, "refrigerator": 1.0,
+                    "remote": 1.0, "sandwich": 1.0, "scissors": 1.0, "sheep": 1.0,
+                    "sink": 1.0, "skateboard": 1.0, "skis": 1.0, "snowboard": 1.0,
+                    "sofa": 1.0, "spoon": 1.0, "sports ball": 1.0, "stop sign": 1.0,
+                    "suitcase": 1.0, "surfboard": 1.0, "teddy bear": 1.0, "tennis racket": 1.0,
+                    "tie": 1.0, "toaster": 1.0, "toilet": 1.0, "toothbrush": 1.0,
+                    "traffic light": 1.0, "train": 1.0, "truck": 1.0, "tvmonitor": 1.0,
+                    "umbrella": 1.0, "vase": 1.0, "wine glass": 1.0, "zebra": 1.0
+                };
+                sendBatchUpdate(resetClasses, '一键关闭操作');
+            }
+        }
+
+        function sendBatchUpdate(classData, operationName) {
+            const jsonFilePath = 'http://192.168.1.193:8088/get_json_file';
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', jsonFilePath, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify(classData));
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        alert(operationName + '成功！');
+                    } else {
+                        alert(operationName + '失败！错误代码：' + xhr.status);
+                    }
+                }
+            };
+        }
+    </script>
+</body>
+
+</html>

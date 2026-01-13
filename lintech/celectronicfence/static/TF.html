@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>保存视频到TF卡</title>
+    <script src="axios.min.js"></script>
+    <script src="lodash.min.js"></script>
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" href="fontawesome-all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .container {
+            max-width: 95%;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        @media (min-width: 1400px) {
+            .container {
+                max-width: 1600px;
+            }
+        }
+
+        /* 头部卡片 */
+        .header-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .header-title {
+            flex: 1;
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+
+        .header-title p {
+            font-size: 14px;
+            color: #999;
+            margin: 5px 0 0 0;
+        }
+
+        /* TF卡信息卡片 */
+        .tf-info-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .tf-info-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tf-info-title i {
+            font-size: 22px;
+        }
+
+        .tf-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .tf-info-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .tf-info-item label {
+            display: block;
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .tf-info-item .value {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* 设置卡片 */
+        .setting-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .form-label i {
+            color: #667eea;
+            margin-right: 8px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-help {
+            font-size: 12px;
+            color: #999;
+            margin-top: 8px;
+        }
+
+        /* 按钮容器 */
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(240, 147, 251, 0.6);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* 分隔器 */
+        .divider {
+            margin: 30px 0;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        /* 警告提示 */
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: start;
+            gap: 12px;
+        }
+
+        .warning-box i {
+            color: #ffc107;
+            font-size: 20px;
+            margin-top: 2px;
+        }
+
+        .warning-content h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #856404;
+            margin: 0 0 5px 0;
+        }
+
+        .warning-content p {
+            font-size: 13px;
+            color: #856404;
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header-card">
+            <div class="header-icon">
+                <i class="fas fa-sd-card"></i>
+            </div>
+            <div class="header-title">
+                <h1>RTSP 流录制</h1>
+                <p>将视频流保存到 TF 卡</p>
+            </div>
+        </div>
+
+        <!-- TF卡信息 -->
+        <div class="tf-info-card">
+            <div class="tf-info-title">
+                <i class="fas fa-hdd"></i>
+                TF卡存储信息
+            </div>
+            <div class="tf-info-grid">
+                <div class="tf-info-item">
+                    <label>挂载路径</label>
+                    <div class="value" id="tf-mount-path">-</div>
+                </div>
+                <div class="tf-info-item">
+                    <label>已使用内存</label>
+                    <div class="value" id="tf-used-memory">-</div>
+                </div>
+                <div class="tf-info-item">
+                    <label>剩余内存</label>
+                    <div class="value" id="tf-free-memory">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 警告提示 -->
+        <div class="warning-box">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div class="warning-content">
+                <h4>注意事项</h4>
+                <p>请确保 TF 卡有足够的剩余空间（建议至少 20GB）。录制前请先测试视频流地址是否可用。</p>
+            </div>
+        </div>
+
+        <!-- 视频流1配置 -->
+        <div class="setting-card">
+            <div class="section-title">
+                <i class="fas fa-video"></i>
+                视频流 1 配置
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-link"></i>
+                    视频流地址
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       id="rtsp-stream-url" 
+                       placeholder="例如: rtsp://192.168.1.206:554/media/video1">
+                <div class="form-help">输入要录制的第一路视频流 RTSP 地址</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-folder"></i>
+                    保存地址
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       id="save-location" 
+                       placeholder="例如: /mnt/sdcard/video1/">
+                <div class="form-help">输入保存第一路视频文件的路径</div>
+            </div>
+        </div>
+
+        <!-- 视频流2配置 -->
+        <div class="setting-card">
+            <div class="section-title">
+                <i class="fas fa-video"></i>
+                视频流 2 配置
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-link"></i>
+                    视频流地址
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       id="rtsp-stream-url-2" 
+                       placeholder="例如: rtsp://192.168.1.207:554/media/video1">
+                <div class="form-help">输入要录制的第二路视频流 RTSP 地址</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-folder"></i>
+                    保存地址
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       id="save-location-2" 
+                       placeholder="例如: /mnt/sdcard/video2/">
+                <div class="form-help">输入保存第二路视频文件的路径</div>
+            </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="setting-card">
+            <div class="section-title">
+                <i class="fas fa-tasks"></i>
+                录制控制
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" id="start-recording-btn">
+                    <i class="fas fa-play"></i>
+                    开始录制
+                </button>
+                <button class="btn btn-danger" id="stop-recording-btn">
+                    <i class="fas fa-stop"></i>
+                    停止录制
+                </button>
+                <button class="btn btn-secondary" id="set-addresses-btn">
+                    <i class="fas fa-save"></i>
+                    设为初始化地址
+                </button>
+                <button class="btn btn-secondary" id="init-addresses-btn">
+                    <i class="fas fa-redo"></i>
+                    初始化默认地址
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载完成后获取并显示默认地址
+        document.addEventListener('DOMContentLoaded', function () {
+            // 获取所有默认地址并显示
+            axios.get('/get_all_default_addresses')
+               .then(function (response) {
+                    var defaultAddresses = response.data;
+                    document.getElementById('rtsp-stream-url').value = defaultAddresses.defaultRtspStreamUrl;
+                    document.getElementById('save-location').value = defaultAddresses.defaultSaveLocation;
+                    document.getElementById('rtsp-stream-url-2').value = defaultAddresses.defaultRtspStreamUrl2;
+                    document.getElementById('save-location-2').value = defaultAddresses.defaultSaveLocation2;
+                })
+               .catch(function (error) {
+                    // console.error(error);
+                    // alert('获取默认地址出错，请检查网络或联系管理员。');
+                });
+
+            // 获取后端的录制状态
+            getRecordingStatus().then((recordingStatus) => {
+                if (recordingStatus) {
+                    document.getElementById('start-recording-btn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在录制';
+                    document.getElementById('start-recording-btn').setAttribute('disabled', true);
+                } else {
+                    document.getElementById('start-recording-btn').innerHTML = '<i class="fas fa-play"></i> 开始录制';
+                    document.getElementById('start-recording-btn').removeAttribute('disabled');
+                }
+            }).catch((error) => {
+                // console.error(error);
+                // alert('获取录制状态时出现错误，请检查网络或联系管理员。');
+            });
+
+            // 按钮事件绑定
+            document.getElementById('start-recording-btn').addEventListener('click', function () {
+                startRecording();
+            });
+
+            document.getElementById('stop-recording-btn').addEventListener('click', function () {
+                debouncedStopRecording();
+            });
+
+            document.getElementById('set-addresses-btn').addEventListener('click', function () {
+                setDefaultAddresses();
+            });
+
+            document.getElementById('init-addresses-btn').addEventListener('click', function () {
+                initDefaultAddresses();
+            });    
+
+            // 获取TF卡信息
+            getTfInfo();
+        });
+
+        // 获取录制状态的函数
+        function getRecordingStatus() {
+            return new Promise((resolve, reject) => {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', '/get_recording_status', true);
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            var status = JSON.parse(xhr.responseText);
+                            resolve(status);
+                        } else {
+                            reject(new Error('获取录制状态出错: ' + xhr.responseText));
+                        }
+                    }
+                };
+                xhr.send();
+            });
+        }
+
+        // 开始录制操作的函数
+        function startRecording() {
+            var rtspStreamUrl = document.getElementById('rtsp-stream-url').value;
+            var saveLocation = document.getElementById('save-location').value;
+            var rtspStreamUrl2 = document.getElementById('rtsp-stream-url-2').value;
+            var saveLocation2 = document.getElementById('save-location-2').value;
+
+            // 获取TF卡信息判断内存是否足够
+            axios.get('/get_tf_info')
+               .then(function (tfInfoResponse) {
+                    var tfInfo = tfInfoResponse.data;
+                    var freeMemoryInGB = parseFloat(tfInfo.freeMemory);
+                    if (freeMemoryInGB < 20.0) {
+                        alert('TF卡可用内存不足！请更换大容量TF卡');
+                        return;
+                    }
+
+                    // 内存足够则执行录制操作并更新默认地址
+                    performRecording(rtspStreamUrl, saveLocation, rtspStreamUrl2, saveLocation2)
+                      .then(() => {
+                            updateDefaultAddresses(rtspStreamUrl, saveLocation, rtspStreamUrl2, saveLocation2);
+                        });
+                })
+            //    .catch(function (error) {
+            //         alert('获取TF卡信息出错: ' + error);
+            //     });
+        }
+
+        // 执行实际录制操作的函数
+        function performRecording(rtspStreamUrl, saveLocation, rtspStreamUrl2, saveLocation2) {
+            return new Promise((resolve, reject) => {
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/start_recording', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                var data = {
+                    "rtspStreamUrl": rtspStreamUrl,
+                    "rtspStreamUrl2": rtspStreamUrl2,
+                    "saveLocation": saveLocation,
+                    "saveLocation2": saveLocation2
+                };
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            alert('视频保存操作已开始');
+                            document.getElementById('start-recording-btn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在录制';
+                            document.getElementById('start-recording-btn').setAttribute('disabled', true);
+                            resolve();
+                        } else {
+                            alert('开始录制出错：' + xhr.responseText);
+                            reject();
+                        }
+                    }
+                };
+                xhr.send(JSON.stringify(data));
+            });
+        }
+
+        // 更新默认地址的函数
+        function updateDefaultAddresses(rtspStreamUrl, saveLocation, rtspStreamUrl2, saveLocation2) {
+            axios.post('/update_default_addresses', {
+                rtspStreamUrl: rtspStreamUrl,
+                saveLocation: saveLocation,
+                rtspStreamUrl2: rtspStreamUrl2,
+                saveLocation2: saveLocation2
+            })
+               .then(function (response) {
+                    console.log('默认地址已更新成功');
+                })
+               .catch(function (error) {
+                    console.error('更新默认地址出错：', error);
+                    alert('更新默认地址失败，请检查网络或联系管理员。');
+                });
+        }
+
+        // 停止录制操作的函数
+        function debouncedStopRecording() {
+            clearInterval(window.intervalId);
+            var startRecordingBtn = document.getElementById('start-recording-btn');
+            if (startRecordingBtn) {
+                startRecordingBtn.innerHTML = '<i class="fas fa-play"></i> 开始录制';
+                startRecordingBtn.removeAttribute('disabled');
+                localStorage.removeItem('recordingStatus');
+            }
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/stop_recording', true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        alert('视频保存操作已停止');
+                    } else {
+                        alert('停止录制出错：' + xhr.responseText);
+                    }
+                }
+            };
+            xhr.send();
+        }
+        
+        // 设置为默认初始化地址的函数
+        function setDefaultAddresses() {
+            const rtspStreamUrl = document.getElementById('rtsp-stream-url').value;
+            const saveLocation = document.getElementById('save-location').value;
+            const rtspStreamUrl2 = document.getElementById('rtsp-stream-url-2').value;
+            const saveLocation2 = document.getElementById('save-location-2').value;
+
+            const data = {
+                rtspStreamUrl: rtspStreamUrl,
+                saveLocation: saveLocation,
+                rtspStreamUrl2: rtspStreamUrl2,
+                saveLocation2: saveLocation2
+            };
+
+            axios.post('/set_default_addresses', data)
+              .then(function (response) {
+                    alert('默认初始化地址已设置成功');
+                    location.reload();
+                })
+              .catch(function (error) {
+                    console.error('默认初始化地址设置出错：', error);
+                    alert('设置默认初始化地址失败，请检查网络或联系管理员。');
+                });
+        }
+
+        // 初始化默认地址的函数
+        function initDefaultAddresses() {
+            axios.post('/init_default_addresses')
+               .then(function (response) {
+                    alert('默认地址已初始化成功');
+                    location.reload();
+                })
+               .catch(function (error) {
+                    console.error('初始化默认地址出错：', error);
+                    alert('初始化默认地址失败，请检查网络或联系管理员。');
+                });
+        }
+
+        // 获取TF卡信息的函数
+        function getTfInfo() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/get_tf_info', true);
+            xhr.setRequestHeader('Cache-Control', 'no-cache');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        var tfInfo = JSON.parse(xhr.responseText);
+                        document.getElementById('tf-mount-path').innerHTML = tfInfo.mountPath;
+                        document.getElementById('tf-used-memory').innerHTML = tfInfo.usedMemory;
+                        document.getElementById('tf-free-memory').innerHTML = tfInfo.freeMemory;
+                    } else {
+                        // alert('获取TF卡信息出错: ' + xhr.responseText);
+                    }
+                }
+            };
+            xhr.send();
+        }
+    </script>
+</body>
+
+</html>

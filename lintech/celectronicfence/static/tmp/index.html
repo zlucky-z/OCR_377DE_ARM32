@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单轨吊车</title>
+    <script src="axios.min.js"></script>
+    <script src="web.min.js"></script>
+    <style>
+        body {
+            margin: 8px;
+        }
+
+        .stream-screen {
+            display: grid;
+            grid-column-gap: 8px;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .stream-content {
+            position: relative;
+            aspect-ratio: 16 / 9;
+        }
+
+        .stream-canvas {
+            position: absolute;
+            z-index: 100;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+        }
+
+        .stream-iframe {
+            position: absolute;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            border-width: 0px;
+            aspect-ratio: 16 / 9;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="stream-screen">
+        <div class="stream-content">
+            <canvas id="stream-canvas-206" class="stream-canvas"></canvas>
+            <iframe id="stream-iframe-206" class="stream-iframe" src="http://127.0.0.1:8889/stream/206"></iframe>
+        </div>
+        <div class="stream-content">
+            <canvas id="stream-canvas-225" class="stream-canvas"></canvas>
+            <iframe id="stream-iframe-225" class="stream-iframe" src="http://127.0.0.1:8889/stream/225"></iframe>
+        </div>
+    </div>
+
+    <script>
+        function getX(element) {
+            var offset = element.offsetLeft;
+            if (element.offsetParent != null) offset += getX(element.offsetParent);
+            return offset;
+        }
+        function getY(element) {
+            var offset = element.offsetTop;
+            if (element.offsetParent != null) offset += getY(element.offsetParent);
+            return offset;
+        }
+        function getW(element) {
+            return element.clientWidth
+        }
+        function getH(element) {
+            return element.clientHeight
+        }
+        function rectToStreamRect(iframe, rect) {
+            sw = 1920
+            sh = 1080
+
+            ix = getX(iframe)
+            iy = getY(iframe)
+            iw = getW(iframe)
+            ih = getH(iframe)
+
+            zm = sw / iw
+
+            return { x: (rect.x) * zm, y: (rect.y) * zm, w: rect.w * zm, h: rect.h * zm }
+        }
+        function streamRectToRect(iframe, rect) {
+            sw = 1920
+            sh = 1080
+
+            ix = getX(iframe)
+            iy = getY(iframe)
+            iw = getW(iframe)
+            ih = getH(iframe)
+
+            zm = iw / sw
+
+            return { x: (rect.x * zm), y: (rect.y * zm), w: rect.w * zm, h: rect.h * zm }
+        }
+    </script>
+
+    <script>
+        const rect0url = "stream/rect/0"
+        const rect1url = "stream/rect/1"
+    </script>
+    <script>
+        const iframe_206 = document.getElementById("stream-iframe-206")
+        const canvas_206 = document.getElementById("stream-canvas-206")
+
+        const app0 = new LeaferUI.App({
+            view: canvas_206, type: 'block', editor: {},
+            width: iframe_206.clientWidth, height: iframe_206.clientHeight
+        })
+        app0.editor.on(LeaferUI.EditorEvent.SELECT, (event) => {
+            const rect = event.oldValue
+            if (rect == null || rect.x == null) { return }
+            axios({
+                method: "post",
+                url: rect.url,
+                headers: { 'Content-Type': 'application/json' },
+                data: rectToStreamRect(iframe_206, { x: rect.x, y: rect.y, w: rect.width, h: rect.height })
+            })
+        })
+        axios.get(rect0url).then(function (res) {
+            const rect = streamRectToRect(iframe_206, res.data)
+            app0.tree.add(new LeaferUI.Rect({
+                url: rect0url,
+                x: rect.x,
+                y: rect.y,
+                width: rect.w,
+                height: rect.h,
+                editable: true,
+                stroke: 'red',
+                strokeWidth: 4
+            }))
+        })
+    </script>
+    <script>
+        const iframe_225 = document.getElementById("stream-iframe-225")
+        const canvas_225 = document.getElementById("stream-canvas-225")
+
+        const app1 = new LeaferUI.App({
+            view: canvas_225, type: 'block', editor: {},
+            width: iframe_225.clientWidth, height: iframe_225.clientHeight
+        })
+        app1.editor.on(LeaferUI.EditorEvent.SELECT, (event) => {
+            const rect = event.oldValue
+            if (rect == null || rect.x == null) { return }
+            axios({
+                method: "post",
+                url: rect.url,
+                headers: { 'Content-Type': 'application/json' },
+                data: rectToStreamRect(iframe_225, { x: rect.x, y: rect.y, w: rect.width, h: rect.height })
+            })
+        })
+        axios.get(rect1url).then(function (res) {
+            const rect = streamRectToRect(iframe_225, res.data)
+            app1.tree.add(new LeaferUI.Rect({
+                url: rect1url,
+                x: rect.x,
+                y: rect.y,
+                width: rect.w,
+                height: rect.h,
+                editable: true,
+                stroke: 'red',
+                strokeWidth: 4
+            }))
+        })
+    </script>
+</body>
+
+</html>

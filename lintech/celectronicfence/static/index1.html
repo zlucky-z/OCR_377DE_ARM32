@@ -1,0 +1,2049 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理系统</title>
+    <script src="axios.min.js"></script>
+    <script src="fabric.min.js"></script>
+    <!-- 引入 Bootstrap 的 CSS 和 JavaScript -->
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <script src="bootstrap.bundle.min.js"></script>
+    <!-- 引入 Chart.js (本地版本) -->
+    <script src="chart.min.js"></script>
+    <!-- 引入 Font Awesome 图标 (本地版本) -->
+    <link rel="stylesheet" href="fontawesome-all.min.css">
+    <!-- 引入 HLS.js 用于播放HLS流 -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+
+        /* 侧边栏样式 */
+        .sidebar {
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            width: 240px;
+            height: 100vh;
+            position: relative;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+
+        .sidebar.collapsed {
+            width: 70px;
+        }
+
+        /* 侧边栏头部 */
+        .sidebar-header {
+            padding: 20px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-title {
+            font-size: 18px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            transition: opacity 0.3s;
+        }
+
+        .sidebar.collapsed .sidebar-title {
+            opacity: 0;
+            width: 0;
+        }
+
+        /* 折叠按钮 */
+        .collapse-btn {
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 5px;
+            transition: transform 0.3s;
+        }
+
+        .collapse-btn:hover {
+            color: #4a9eff;
+        }
+
+        .sidebar.collapsed .collapse-btn {
+            transform: rotate(180deg);
+        }
+
+        /* 导航菜单 */
+        .nav-menu {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
+        .nav-menu::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .nav-menu::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+        }
+
+        .nav-item {
+            margin: 5px 10px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .nav-link:hover {
+            background: rgba(74, 158, 255, 0.1);
+            color: #4a9eff;
+        }
+
+        .nav-link.active {
+            background: linear-gradient(90deg, #4a9eff 0%, #357abd 100%);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(74, 158, 255, 0.3);
+        }
+
+        .nav-link i {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+            margin-right: 12px;
+            transition: margin 0.3s;
+        }
+
+        .sidebar.collapsed .nav-link i {
+            margin-right: 0;
+        }
+
+        .nav-link span {
+            white-space: nowrap;
+            overflow: hidden;
+            transition: opacity 0.3s;
+        }
+
+        .sidebar.collapsed .nav-link span {
+            opacity: 0;
+            width: 0;
+        }
+
+        /* 用户信息 */
+        .user-info {
+            padding: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-details {
+            flex: 1;
+            overflow: hidden;
+            transition: opacity 0.3s;
+        }
+
+        .sidebar.collapsed .user-details {
+            opacity: 0;
+            width: 0;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-role {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            background: #f5f7fa;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 内容页面 */
+        .content-page {
+            display: none;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .content-page.active {
+            display: block;
+        }
+
+        /* iframe 页面 */
+        .iframe-page {
+            overflow: hidden;
+            padding: 0;
+        }
+
+        .iframe-page iframe {
+            border: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 实时预览页面样式 */
+        .stream-page {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .stream-page.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶部工具栏 */
+        .stream-header {
+            background: rgba(20, 20, 30, 0.98);
+            padding: 12px 25px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            flex-shrink: 0;
+        }
+
+        .stream-header-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+
+        /* 主视频区域容器 */
+        .stream-main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 视频显示区域 */
+        .stream-video-area {
+            flex: 4;
+            position: relative;
+            overflow: hidden;
+            background: #0a0a0a;
+        }
+
+        /* 合流视图（单视频流） */
+        .stream-grid-view {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0a0a0a;
+            padding: 2px;
+            position: relative;
+        }
+
+        .stream-grid-view.hidden {
+            display: none;
+        }
+
+        .stream-grid-item {
+            position: relative;
+            background: #1a1a1a;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .stream-grid-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .stream-video-player {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            object-fit: contain;
+        }
+
+        .stream-grid-label {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 10;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .stream-grid-status {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4caf50;
+            z-index: 10;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 1);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.7;
+            }
+        }
+
+        .stream-grid-status.offline {
+            background: #f44336;
+            box-shadow: 0 0 15px rgba(244, 67, 54, 1);
+            animation: none;
+        }
+
+        .stream-grid-empty {
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        /* 文本识别结果区域 */
+        .stream-text-area {
+            flex: 1;
+            min-height: 120px;
+            max-height: 25%;
+            background: rgba(20, 20, 30, 0.98);
+            border-top: 2px solid rgba(102, 126, 234, 0.5);
+            padding: 15px 25px 15px 25px;
+            overflow: hidden;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stream-text-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+            flex-shrink: 0;
+        }
+
+        .recognize-btn {
+            margin-left: auto;
+            padding: 6px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .recognize-btn:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+        }
+
+        .recognize-btn:active {
+            transform: translateY(0);
+        }
+
+        .recognize-btn:disabled {
+            background: rgba(102, 126, 234, 0.3);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .recognize-btn i {
+            font-size: 12px;
+        }
+
+        .clear-btn {
+            margin-left: 10px;
+            padding: 6px 16px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+        }
+
+        .clear-btn:hover {
+            background: linear-gradient(135deg, #ee5a52 0%, #ff6b6b 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.5);
+        }
+
+        .clear-btn:active {
+            transform: translateY(0);
+        }
+
+        .clear-btn:disabled {
+            background: rgba(255, 107, 107, 0.3);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .clear-btn i {
+            font-size: 12px;
+        }
+
+        .stream-text-content {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.8;
+            font-family: 'Consolas', 'Monaco', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 10px;
+        }
+
+        .stream-text-item {
+            padding: 0;
+            margin-bottom: 0;
+            line-height: 1.0;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .stream-text-time {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-right: 10px;
+        }
+
+        .stream-text-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .stream-text-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .stream-text-content::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 3px;
+        }
+
+        .stream-text-empty {
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 13px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* 单任务视图 */
+        .stream-single-view {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none;
+        }
+
+        .stream-single-view.active {
+            display: block;
+        }
+
+        .stream-content {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .stream-fabric {
+            position: absolute !important;
+            width: 100%;
+            height: 100%;
+        }
+
+        .stream-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            width: 100%;
+            height: 100%;
+            pointer-events: auto;
+        }
+
+        .stream-iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .stream-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 200;
+        }
+
+        .stream-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stream-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+
+        /* 基本信息页面样式 */
+        .info-page {
+            padding: 30px;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .info-card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-card-title i {
+            color: #4a9eff;
+        }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .info-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .info-table td:first-child {
+            color: #666;
+            width: 150px;
+            font-weight: 500;
+        }
+
+        .info-table td:nth-child(2) {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .info-table td:nth-child(3) {
+            color: #666;
+            width: 150px;
+            font-weight: 500;
+        }
+
+        .info-table td:nth-child(4) {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .info-actions {
+            margin-top: 20px;
+            text-align: center;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .info-btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .info-btn-primary {
+            background: #4a9eff;
+            color: white;
+        }
+
+        .info-btn-success {
+            background: #52c41a;
+            color: white;
+        }
+
+        .info-btn-danger {
+            background: #ff4d4f;
+            color: white;
+        }
+
+        .info-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 图表容器 */
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-title i {
+            color: #4a9eff;
+        }
+
+        /* 状态标签 */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-authorized {
+            background: #d4edda;
+            color: #155724;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 侧边栏 -->
+    <div class="sidebar" id="sidebar">
+        <!-- 侧边栏头部 -->
+        <div class="sidebar-header">
+            <span class="sidebar-title">管理系统</span>
+            <button class="collapse-btn" id="collapseBtn">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        </div>
+
+        <!-- 导航菜单 -->
+        <nav class="nav-menu">
+            <div class="nav-item">
+                <a class="nav-link" data-page="info">
+                    <i class="fas fa-info-circle"></i>
+                    <span>基本信息</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link" data-page="channel">
+                    <i class="fas fa-th-large"></i>
+                    <span>通道管理</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link" data-page="stream">
+                    <i class="fas fa-video"></i>
+                    <span>实时预览</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link" data-page="task">
+                    <i class="fas fa-tasks"></i>
+                    <span>任务管理</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link" data-page="smart">
+                    <i class="fas fa-brain"></i>
+                    <span>智能设置</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link" data-page="network">
+                    <i class="fas fa-network-wired"></i>
+                    <span>网络配置</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link" data-page="alarm">
+                    <i class="fas fa-bell"></i>
+                    <span>告警管理</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link" data-page="params">
+                    <i class="fas fa-cogs"></i>
+                    <span>参数配置</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link" data-page="tfcard">
+                    <i class="fas fa-sd-card"></i>
+                    <span>TF卡应用</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- 用户信息 -->
+        <div class="user-info">
+            <img src="user.jpg" alt="User" class="user-avatar" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%234a9eff%22%3E%3Cpath d=%22M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z%22/%3E%3C/svg%3E'">
+            <div class="user-details">
+                <div class="user-name">Admin</div>
+                <div class="user-role">系统管理员</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+        <!-- 实时预览页面 -->
+        <div class="content-page stream-page" id="streamPage">
+            <!-- 顶部工具栏 -->
+            <div class="stream-header">
+                <div class="stream-header-title">
+                    <i class="fas fa-video"></i>
+                    实时预览
+                </div>
+            </div>
+
+            <!-- 主视频区域 -->
+            <div class="stream-main-container">
+                <div class="stream-video-area">
+                    <!-- 合流视图（单视频流） -->
+                    <div class="stream-grid-view" id="gridView">
+                        <div class="stream-grid-item" id="grid-0">
+                            <div class="stream-grid-label">通道 1</div>
+                            <div class="stream-grid-status"></div>
+                            <iframe class="stream-grid-iframe" id="webrtc-player-0" allow="camera;microphone" style="width:100%; height:100%; border:none;"></iframe>
+                        </div>
+                    </div>
+
+                    <!-- 单任务视图 -->
+                    <div class="stream-single-view" id="singleView">
+                        <div class="stream-content">
+                            <canvas id="stream-canvas-0" class="stream-canvas"></canvas>
+                            <iframe id="stream-iframe-0" class="stream-iframe" src=""></iframe>
+                        </div>
+                        <div class="stream-controls">
+                            <button id="stream-button" class="stream-button">
+                                <i class="fas fa-save"></i> 提交配置
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 文本识别结果区域 -->
+                <div class="stream-text-area">
+                    <div class="stream-text-header">
+                        <i class="fas fa-font"></i>
+                        识别文本内容
+                        <button id="recognizeBtn" class="recognize-btn">
+                            <i class="fas fa-search"></i> 识别
+                        </button>
+                        <button id="clearBtn" class="clear-btn">
+                            <i class="fas fa-trash-alt"></i> 清除
+                        </button>
+                    </div>
+                    <div class="stream-text-content" id="textContent">
+                        <div class="stream-text-empty">等待识别结果...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 基本信息页面 -->
+        <div class="content-page info-page" id="infoPage">
+            <div class="info-card">
+                <div class="info-card-title">
+                    <i class="fas fa-server"></i>
+                    设备信息
+                </div>
+                <table class="info-table">
+                    <tr>
+                        <td>设备标识</td>
+                        <td id="deviceId">-</td>
+                        <td>授权状态</td>
+                        <td><span id="authStatus" class="status-badge status-authorized">已授权</span></td>
+                    </tr>
+                    <tr>
+                        <td>资源信息</td>
+                        <td id="storageInfo">-</td>
+                        <td>系统版本</td>
+                        <td id="systemVersion">-</td>
+                    </tr>
+                    <tr>
+                        <td>软件版本</td>
+                        <td id="softwareVersion">-</td>
+                        <td>盒子时间</td>
+                        <td id="systemTime">-</td>
+                    </tr>
+                    <tr>
+                        <td>GPS</td>
+                        <td id="gpsInfo">-</td>
+                        <td>芯片温度</td>
+                        <td id="chipTemp">-</td>
+                    </tr>
+                </table>
+                <div class="info-actions">
+                    <button class="info-btn info-btn-primary" onclick="queryDeviceInfo()">
+                        <i class="fas fa-sync"></i> 查询设备
+                    </button>
+                    <button class="info-btn info-btn-success" onclick="updateFirmware()">
+                        <i class="fas fa-cloud-upload-alt"></i> 更新固件
+                    </button>
+                    <button class="info-btn info-btn-danger" onclick="rebootDevice()">
+                        <i class="fas fa-power-off"></i> 重启设备
+                    </button>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">
+                    <i class="fas fa-temperature-high"></i>
+                    芯片温度 (℃)
+                </div>
+                <canvas id="tempChart" height="80"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">
+                    <i class="fas fa-chart-line"></i>
+                    系统资源使用率 (%)
+                </div>
+                <canvas id="resourceChart" height="80"></canvas>
+            </div>
+        </div>
+
+        <!-- 通道管理页面 -->
+        <div class="content-page iframe-page" id="channelPage">
+            <iframe src="CmeraIp.html" frameborder="0" style="width: 100%; height: 100%;"></iframe>
+        </div>
+
+        <!-- 任务管理页面 -->
+        <div class="content-page iframe-page" id="taskPage">
+            <iframe src="task.html" frameborder="0" style="width: 100%; height: 100%;"></iframe>
+        </div>
+
+        <!-- 智能设置页面 -->
+        <div class="content-page iframe-page" id="smartPage">
+            <iframe src="smart.html" frameborder="0" style="width: 100%; height: 100%;"></iframe>
+        </div>
+
+        <!-- 网络配置页面 -->
+        <div class="content-page iframe-page" id="networkPage">
+            <iframe src="network.html" frameborder="0" style="width: 100%; height: 100%;"></iframe>
+        </div>
+
+        <!-- 告警管理页面 -->
+        <div class="content-page iframe-page" id="alarmPage">
+            <iframe src="alarm.html" frameborder="0" style="width: 100%; height: 100%;"></iframe>
+        </div>
+
+        <!-- 参数配置页面 -->
+        <div class="content-page iframe-page" id="paramsPage">
+            <iframe src="params.html" frameborder="0" style="width: 100%; height: 100%;"></iframe>
+        </div>
+
+        <!-- TF卡应用页面 -->
+        <div class="content-page iframe-page" id="tfcardPage">
+            <iframe src="TF.html" frameborder="0" style="width: 100%; height: 100%;"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // ===== 配置axios基础URL =====
+        axios.defaults.baseURL = 'http://192.168.1.193:8088';
+        
+        // ===== 侧边栏折叠功能 =====
+        const sidebar = document.getElementById('sidebar');
+        const collapseBtn = document.getElementById('collapseBtn');
+
+        collapseBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+        });
+
+        // ===== 页面切换功能 =====
+        const navLinks = document.querySelectorAll('.nav-link');
+        const contentPages = document.querySelectorAll('.content-page');
+
+        // 切换到指定页面
+        function switchToPage(pageName) {
+            // 移除所有活动状态
+            navLinks.forEach(l => l.classList.remove('active'));
+            contentPages.forEach(p => p.classList.remove('active'));
+            
+            // 找到对应的导航链接和页面
+            const targetLink = document.querySelector(`.nav-link[data-page="${pageName}"]`);
+            const targetPage = document.getElementById(pageName + 'Page');
+            
+            if (targetLink && targetPage) {
+                // 添加活动状态
+                targetLink.classList.add('active');
+                targetPage.classList.add('active');
+                
+                // 保存当前页面到localStorage
+                localStorage.setItem('currentPage', pageName);
+                
+                // 如果切换到实时预览页面，只初始化合流视图（不初始化Canvas，等用户点击任务时再初始化）
+                if (pageName === 'stream') {
+                    setTimeout(() => {
+                        if (typeof initGridView === 'function') {
+                            initGridView();
+                        }
+                        if (typeof startTextRefresh === 'function') {
+                            startTextRefresh();
+                        }
+                    }, 150);
+                } else {
+                    // 切换到其他页面时停止文本刷新和视频播放
+                    if (typeof stopTextRefresh === 'function') {
+                        stopTextRefresh();
+                    }
+                    if (typeof stopVideoStream === 'function') {
+                        stopVideoStream();
+                    }
+                }
+                
+                // 如果切换到基本信息页面，初始化数据
+                if (pageName === 'info' && !window.infoPageInitialized) {
+                    initInfoPage();
+                    window.infoPageInitialized = true;
+                }
+                
+                // 如果切换到实时预览页面，重新初始化canvas
+                if (pageName === 'stream' && window.streamCanvas) {
+                    // 短暂延迟确保页面元素完全显示
+                    setTimeout(() => {
+                        window.streamCanvas.renderAll();
+                    }, 100);
+                }
+            }
+        }
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const pageName = link.getAttribute('data-page');
+                switchToPage(pageName);
+            });
+        });
+
+        // 页面加载时恢复上次打开的页面
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedPage = localStorage.getItem('currentPage');
+            if (savedPage) {
+                switchToPage(savedPage);
+            } else {
+                // 默认显示基本信息页
+                switchToPage('info');
+            }
+        });
+
+        // ===== 实时预览功能 =====
+        let currentStreamMode = 'grid'; // 'grid' or 'single'
+        let currentTaskId = null;
+        let streamTasks = [];
+        const streamWidth = 1920;
+        const streamHeight = 1080;  // 视频流原始高度（根据实际分辨率调整）
+
+        // 加载任务列表
+        function loadStreamTasks() {
+            axios.get('/api/tasks')
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        streamTasks = response.data.tasks;
+                        renderStreamTaskList();
+                    }
+                })
+                .catch(error => {
+                    console.error('加载任务失败:', error);
+                });
+        }
+
+        // 渲染任务列表
+        function renderStreamTaskList() {
+            const taskList = document.getElementById('taskList');
+            if (!taskList) return;
+            
+            taskList.innerHTML = '';
+
+            streamTasks.forEach(task => {
+                const taskItem = document.createElement('div');
+                taskItem.className = 'stream-task-item';
+                if (task.status === 'stopped') {
+                    taskItem.classList.add('offline');
+                }
+                
+                taskItem.innerHTML = `
+                    <div class="task-icon"></div>
+                    <span>${task.taskNumber || '任务' + task.id}</span>
+                `;
+                
+                taskItem.onclick = () => switchToStreamTask(task);
+                taskList.appendChild(taskItem);
+            });
+        }
+
+        // 切换到合流模式
+        function switchToGridMode() {
+            currentStreamMode = 'grid';
+            document.getElementById('gridView').classList.remove('hidden');
+            document.getElementById('singleView').classList.remove('active');
+            document.getElementById('gridModeBtn').classList.add('active');
+            document.getElementById('singleModeBtn').classList.remove('active');
+            
+            // 清除任务选中状态
+            document.querySelectorAll('.stream-task-item').forEach(item => {
+                item.classList.remove('active');
+            });
+        }
+
+        // 返回合流视图
+        function backToGrid() {
+            switchToGridMode();
+        }
+
+        // 切换到单任务视图
+        function switchToStreamTask(task) {
+            currentStreamMode = 'single';
+            currentTaskId = task.id;
+            
+            document.getElementById('gridView').classList.add('hidden');
+            document.getElementById('singleView').classList.add('active');
+            document.getElementById('gridModeBtn').classList.remove('active');
+            document.getElementById('singleModeBtn').classList.add('active');
+            
+            // 更新任务选中状态
+            document.querySelectorAll('.stream-task-item').forEach((item, index) => {
+                if (streamTasks[index].id === task.id) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+            
+            // 首次切换到单任务视图时初始化Canvas（此时.stream-single-view已经是visible的）
+            if (!streamCanvasInitialized) {
+                console.log('首次切换到单任务视图，初始化Canvas...');
+                setTimeout(() => {
+                    initStreamPage();
+                }, 150);  // 给一点时间让DOM完全渲染
+            }
+            
+            // 加载该任务的视频流
+            loadStreamTaskVideo(task);
+        }
+
+        // 加载任务视频流
+        function loadStreamTaskVideo(task) {
+            // 从channels.json获取视频源URL
+            axios.get('/api/channels')
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        const channels = response.data.channels;
+                        const channel = channels.find(ch => ch.id === task.videoSourceId);
+                        
+                        if (channel) {
+                            // 根据channelAssignment确定使用哪个channel_id
+                            const channelId = channel.channelAssignment === '2' ? 10 : 20;
+                            const iframe0 = document.getElementById('stream-iframe-0');
+                            const canvas0 = document.getElementById('stream-canvas-0');
+                            
+                            iframe0.src = window.location.protocol + "//" + window.location.hostname + ":8889/0_" + channelId;
+                            
+                            console.log('视频源已切换到:', iframe0.src);
+                            
+                            // 等待iframe加载后调整Canvas尺寸并重新加载多边形
+                            setTimeout(() => {
+                                if (window.streamCanvas) {
+                                    // 调整Canvas尺寸以匹配iframe
+                                    const width = iframe0.clientWidth;
+                                    const height = iframe0.clientHeight;
+                                    
+                                    console.log('调整Canvas尺寸为:', width, 'x', height);
+                                    
+                                    canvas0.width = width;
+                                    canvas0.height = height;
+                                    canvas0.style.width = width + 'px';
+                                    canvas0.style.height = height + 'px';
+                                    
+                                    window.streamCanvas.setDimensions({
+                                        width: width,
+                                        height: height
+                                    });
+                                }
+                                
+                                // 重新加载多边形配置
+                                if (window.reloadStreamPolygon && typeof window.reloadStreamPolygon === 'function') {
+                                    console.log('正在重新加载红色范围框...');
+                                    window.reloadStreamPolygon();
+                                } else {
+                                    console.warn('多边形加载函数未初始化');
+                                }
+                            }, 500);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('加载视频源失败:', error);
+                });
+        }
+
+        // 初始化合流视图（4宫格）
+        let hlsPlayer = null; // 用于存储HLS播放器实例
+
+        function initGridView() {
+            // 直接加载 WebRTC 流，不需要请求 API
+            const iframe = document.getElementById('webrtc-player-0');
+            const statusDot = document.querySelector('#grid-0 .stream-grid-status');
+            const label = document.querySelector('#grid-0 .stream-grid-label');
+            
+            if (iframe) {
+                // 更新标签
+                if (label) {
+                    label.textContent = 'OCR识别流';
+                }
+                
+                // 直接使用 MediaMTX 的 WebRTC 播放页面
+                // MediaMTX 会从 RTSP 源拉流并通过 WebRTC 提供
+                const webrtcUrl = window.location.protocol + "//" + window.location.hostname + ":8889/0_20";
+                iframe.src = webrtcUrl;
+                
+                console.log(`WebRTC播放地址: ${webrtcUrl}`);
+                
+                // 更新状态为在线
+                if (statusDot) {
+                    statusDot.classList.remove('offline');
+                }
+            }
+        }
+
+        // 使用HLS.js播放HLS流
+        function playHlsStream(video, hlsUrl) {
+            if (Hls.isSupported()) {
+                // 销毁旧的播放器实例
+                if (hlsPlayer) {
+                    hlsPlayer.destroy();
+                }
+                
+                hlsPlayer = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    backBufferLength: 90
+                });
+                
+                hlsPlayer.loadSource(hlsUrl);
+                hlsPlayer.attachMedia(video);
+                
+                hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
+                    console.log('HLS流加载成功，开始播放');
+                    video.play().catch(e => {
+                        console.log('自动播放失败，需要用户交互:', e);
+                    });
+                });
+                
+                hlsPlayer.on(Hls.Events.ERROR, function(event, data) {
+                    console.error('HLS播放错误:', data);
+                    if (data.fatal) {
+                        switch(data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                console.log('网络错误，尝试恢复...');
+                                hlsPlayer.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                console.log('媒体错误，尝试恢复...');
+                                hlsPlayer.recoverMediaError();
+                                break;
+                            default:
+                                console.log('无法恢复的错误，重新加载');
+                                hlsPlayer.destroy();
+                                setTimeout(() => playHlsStream(video, hlsUrl), 3000);
+                                break;
+                        }
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // iOS Safari原生支持HLS
+                video.src = hlsUrl;
+                video.addEventListener('loadedmetadata', function() {
+                    video.play().catch(e => console.log('自动播放失败:', e));
+                });
+            } else {
+                console.error('浏览器不支持HLS播放');
+                alert('您的浏览器不支持HLS播放，请使用Chrome、Edge或Safari浏览器');
+            }
+        }
+
+        // 配置MediaMTX路径（通知后端在mediamtx.yml中添加路径配置）
+        function configureMediaMTXPath(rtspUrl, streamName, channelId) {
+            axios.post('/api/mediamtx/configure', {
+                streamName: streamName,
+                rtspUrl: rtspUrl,
+                channelId: channelId
+            })
+            .then(response => {
+                console.log('MediaMTX路径配置成功:', response.data);
+            })
+            .catch(error => {
+                console.log('MediaMTX路径配置失败（可能需要手动配置）:', error);
+            });
+        }
+
+        // 停止播放
+        function stopVideoStream() {
+            if (hlsPlayer) {
+                hlsPlayer.destroy();
+                hlsPlayer = null;
+            }
+            const video = document.getElementById('video-player-0');
+            if (video) {
+                video.pause();
+                video.src = '';
+            }
+        }
+
+        // 获取OCR识别结果
+        function triggerRecognition() {
+            const recognizeBtn = document.getElementById('recognizeBtn');
+            const textContent = document.getElementById('textContent');
+            
+            recognizeBtn.disabled = true;
+            recognizeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 获取中...';
+            
+            console.log('========================================');
+            console.log('发送识别请求');
+            console.log('请求地址:', 'http://192.168.1.193:8010/api/ocr/add');
+            console.log('时间:', new Date().toLocaleString());
+            console.log('========================================');
+            
+            // 发送GET请求到算法程序的OCR服务
+            axios.get('http://192.168.1.193:8010/api/ocr/add')
+            .then(response => {
+                console.log('========================================');
+                console.log('✓ 收到响应');
+                console.log('完整响应:', JSON.stringify(response.data, null, 2));
+                console.log('response.data:', response.data);
+                console.log('response.data.status:', response.data.status);
+                console.log('response.data.text:', response.data.text);
+                console.log('response.data.text类型:', typeof response.data.text);
+                console.log('========================================');
+                
+                // 检查响应数据是否存在
+                if (!response.data) {
+                    console.error('✗ 响应数据为空');
+                    textContent.innerHTML = '<div class="stream-text-empty" style="color: #ff6b6b;">响应数据为空，请检查算法服务</div>';
+                    recognizeBtn.disabled = false;
+                    recognizeBtn.innerHTML = '<i class="fas fa-search"></i> 识别';
+                    return;
+                }
+                
+                // 检查status字段
+                if (response.data.status !== 'success') {
+                    console.error('✗ 响应状态不是success:', response.data.status);
+                    textContent.innerHTML = `<div class="stream-text-empty" style="color: #ff6b6b;">识别失败: ${response.data.message || '未知错误'}</div>`;
+                    recognizeBtn.disabled = false;
+                    recognizeBtn.innerHTML = '<i class="fas fa-search"></i> 识别';
+                    return;
+                }
+                
+                // 检查text字段
+                const textData = response.data.text;
+                if (!textData || textData.trim().length === 0) {
+                    console.warn('⚠ text字段为空');
+                    textContent.innerHTML = '<div class="stream-text-empty" style="color: #ffa500;">未检测到文本内容</div>';
+                    recognizeBtn.disabled = false;
+                    recognizeBtn.innerHTML = '<i class="fas fa-search"></i> 识别';
+                    return;
+                }
+                
+                // 解析并显示识别结果
+                console.log('✓ 开始解析识别结果...');
+                textContent.innerHTML = '';
+                
+                // 按逗号分隔多个识别结果
+                const recognizedTexts = textData.split(',').map(t => t.trim()).filter(t => t.length > 0);
+                const timestamp = response.data.timestamp || new Date().toLocaleTimeString('zh-CN', { hour12: false });
+                
+                console.log(`解析到 ${recognizedTexts.length} 个识别结果:`, recognizedTexts);
+                
+                if (recognizedTexts.length === 0) {
+                    console.warn('⚠ 解析后没有有效结果');
+                    textContent.innerHTML = '<div class="stream-text-empty" style="color: #ffa500;">未检测到有效文本</div>';
+                } else {
+                    // 显示每个识别结果
+                    recognizedTexts.forEach((text, index) => {
+                        const textItem = document.createElement('div');
+                        textItem.className = 'stream-text-item';
+                        textItem.innerHTML = `
+                            <span class="stream-text-time">${timestamp}</span>
+                            <span>识别结果${index + 1}：${text}</span>
+                        `;
+                        textContent.appendChild(textItem);
+                    });
+                    
+                    console.log(`✓ 成功显示 ${recognizedTexts.length} 个识别结果`);
+                    
+                    // 自动滚动到底部
+                    textContent.scrollTop = textContent.scrollHeight;
+                }
+                
+                recognizeBtn.disabled = false;
+                recognizeBtn.innerHTML = '<i class="fas fa-search"></i> 识别';
+            })
+            .catch(error => {
+                console.error('========================================');
+                console.error('✗ 请求失败');
+                console.error('错误类型:', error.name);
+                console.error('错误信息:', error.message);
+                if (error.response) {
+                    console.error('响应状态码:', error.response.status);
+                    console.error('响应数据:', error.response.data);
+                } else if (error.request) {
+                    console.error('未收到响应，请求对象:', error.request);
+                } else {
+                    console.error('请求配置错误:', error.config);
+                }
+                console.error('========================================');
+                
+                // 显示友好的错误提示
+                let errorMsg = '连接失败';
+                if (error.response) {
+                    errorMsg = `服务器返回错误 (${error.response.status})`;
+                } else if (error.request) {
+                    errorMsg = '无法连接到算法服务器，请检查网络和服务状态';
+                }
+                
+                textContent.innerHTML = `<div class="stream-text-empty" style="color: #ff6b6b;">${errorMsg}</div>`;
+                
+                recognizeBtn.disabled = false;
+                recognizeBtn.innerHTML = '<i class="fas fa-search"></i> 识别';
+            });
+        }
+        
+        // 获取当前时间字符串（用于显示）
+        function getCurrentTime() {
+            const now = new Date();
+            return now.toLocaleTimeString('zh-CN', { hour12: false });
+        }
+
+        // 清除识别结果
+        function clearRecognitionResults() {
+            if (!confirm('确定要清除显示的识别结果吗？')) {
+                return;
+            }
+            
+            // 直接清空显示区域
+            const textContent = document.getElementById('textContent');
+            textContent.innerHTML = '<div class="stream-text-empty">等待识别结果...</div>';
+            console.log('已清除显示的识别结果');
+        }
+
+        // 加载识别文本内容 - 手动点击按钮获取
+        function loadRecognizedText() {
+            // 不再自动轮询，点击识别按钮时手动获取
+            console.log('识别结果需要点击"识别"按钮手动获取');
+        }
+
+        // 定期刷新识别文本内容 - 已禁用自动刷新
+        let textRefreshInterval = null;
+        function startTextRefresh() {
+            // 不再自动刷新，等待点击识别按钮
+            console.log('自动刷新已禁用，请点击识别按钮获取结果');
+        }
+
+        function stopTextRefresh() {
+            if (textRefreshInterval) {
+                clearInterval(textRefreshInterval);
+                textRefreshInterval = null;
+            }
+        }
+
+        // 页面加载时初始化任务列表和合流视图
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStreamTasks();
+            initGridView();
+            
+            // 绑定识别按钮点击事件
+            const recognizeBtn = document.getElementById('recognizeBtn');
+            if (recognizeBtn) {
+                recognizeBtn.addEventListener('click', triggerRecognition);
+            }
+            
+            // 绑定清除按钮点击事件
+            const clearBtn = document.getElementById('clearBtn');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', clearRecognitionResults);
+            }
+        });
+
+        function canvasPointToStreamPoint(iframe, point) {
+            const zmX = streamWidth / iframe.clientWidth;
+            const zmY = streamHeight / iframe.clientHeight;
+            return { 
+                x: parseInt(point.x * zmX), 
+                y: parseInt(point.y * zmY) 
+            };
+        }
+
+        function streamPointToCanvasPoint(iframe, point) {
+            const zmX = iframe.clientWidth / streamWidth;
+            const zmY = iframe.clientHeight / streamHeight;
+            console.log(`坐标转换: 原始(${point.x},${point.y}) zmX=${zmX.toFixed(3)} zmY=${zmY.toFixed(3)} → Canvas(${(point.x * zmX).toFixed(2)},${(point.y * zmY).toFixed(2)})`);
+            return { 
+                x: (point.x * zmX), 
+                y: (point.y * zmY) 
+            };
+        }
+
+        const debounce = (fn, delay) => {
+            let timer;
+            return function () {
+                if (timer) {
+                    clearTimeout(timer);
+                }
+                timer = setTimeout(() => {
+                    fn();
+                }, delay);
+            };
+        };
+
+        window.addEventListener(
+            "resize",
+            debounce(() => {
+                window.location.reload();
+            }, 100)
+        );
+
+        // Canvas初始化标志，避免重复初始化
+        let streamCanvasInitialized = false;
+
+        // 初始化实时预览页面的Canvas和多边形
+        function initStreamPage() {
+            if (streamCanvasInitialized) return;
+            
+            const iframe0 = document.getElementById("stream-iframe-0");
+            const canvas0 = document.getElementById("stream-canvas-0");
+            const button = document.getElementById("stream-button");
+            
+            if (!iframe0 || !canvas0 || !button) return;
+            
+            iframe0.src = window.location.protocol + "//" + window.location.hostname + ":8889/0_20";
+
+            // 使用轮询检查iframe是否有尺寸，最多等待5秒
+            let checkCount = 0;
+            const maxChecks = 50; // 5秒 / 100ms = 50次
+            
+            const checkIframeSize = setInterval(() => {
+                checkCount++;
+                const width = iframe0.clientWidth;
+                const height = iframe0.clientHeight;
+                
+                console.log(`检查iframe尺寸 (${checkCount}/${maxChecks}):`, width, 'x', height);
+                
+                // 如果iframe有尺寸，或者超时，就初始化Canvas
+                if ((width > 0 && height > 0) || checkCount >= maxChecks) {
+                    clearInterval(checkIframeSize);
+                    
+                    if (width === 0 || height === 0) {
+                        console.warn('警告：iframe尺寸仍为0，使用容器尺寸');
+                        // 使用父容器尺寸作为备选
+                        const container = iframe0.parentElement;
+                        const containerWidth = container.clientWidth;
+                        const containerHeight = container.clientHeight;
+                        console.log('容器尺寸:', containerWidth, 'x', containerHeight);
+                    }
+                    
+                    console.log('开始初始化Canvas...');
+                    
+                    // 销毁旧的Canvas（如果存在）
+                    if (window.streamCanvas) {
+                        console.log('销毁旧的Canvas实例');
+                        window.streamCanvas.dispose();
+                        window.streamCanvas = null;
+                    }
+                    
+                    // 使用iframe尺寸（如果为0则使用父容器尺寸）
+                    let finalWidth = width;
+                    let finalHeight = height;
+                    
+                    if (finalWidth === 0 || finalHeight === 0) {
+                        const container = iframe0.parentElement;
+                        finalWidth = container.clientWidth;
+                        finalHeight = container.clientHeight;
+                    }
+                    
+                    console.log('最终Canvas尺寸:', finalWidth, 'x', finalHeight);
+                    
+                    // 设置Canvas元素的尺寸属性
+                    canvas0.width = finalWidth;
+                    canvas0.height = finalHeight;
+                    canvas0.style.width = finalWidth + 'px';
+                    canvas0.style.height = finalHeight + 'px';
+                    
+                    console.log('Canvas DOM元素已设置尺寸:', canvas0.width, 'x', canvas0.height);
+                    
+                    const fabricCanvas = new fabric.Canvas('stream-canvas-0', {
+                        width: finalWidth,
+                        height: finalHeight,
+                        containerClass: "stream-fabric"
+                    });
+                    
+                    console.log('Fabric Canvas已创建，尺寸:', fabricCanvas.width, 'x', fabricCanvas.height);
+
+                    // 保存到全局变量以便页面切换时使用
+                    window.streamCanvas = fabricCanvas;
+                    window.streamIframe = iframe0;
+                    window.streamButton = button;
+                    
+                    initStreamCanvas(fabricCanvas, iframe0, button);
+                    streamCanvasInitialized = true;
+                    
+                    // 添加窗口resize监听
+                    setupResizeListener();
+                }
+            }, 100); // 每100ms检查一次
+        }
+        
+        // 设置窗口resize监听器，动态调整Canvas和红框
+        function setupResizeListener() {
+            let resizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    if (window.streamCanvas && window.streamIframe) {
+                        const canvas0 = document.getElementById('stream-canvas-0');
+                        const iframe0 = window.streamIframe;
+                        
+                        // 获取iframe的实际显示尺寸
+                        const newWidth = iframe0.clientWidth;
+                        const newHeight = iframe0.clientHeight;
+                        
+                        console.log('窗口resize，调整Canvas尺寸为:', newWidth, 'x', newHeight);
+                        
+                        // 调整Canvas DOM元素和Fabric Canvas尺寸
+                        canvas0.width = newWidth;
+                        canvas0.height = newHeight;
+                        canvas0.style.width = newWidth + 'px';
+                        canvas0.style.height = newHeight + 'px';
+                        
+                        window.streamCanvas.setDimensions({
+                            width: newWidth,
+                            height: newHeight
+                        });
+                        
+                        // 重新加载多边形
+                        if (window.reloadStreamPolygon) {
+                            console.log('重新加载红色范围框以适应新尺寸');
+                            window.reloadStreamPolygon();
+                        }
+                    }
+                }, 300);
+            });
+        }
+
+        function initStreamCanvas(fabricCanvas, iframe0, button) {
+        
+        let polygon = null;
+        let circleList = [];
+        let points = [];
+        
+        // 加载并绘制多边形的函数
+        function loadAndDrawPolygon() {
+            axios.get("/stream/polygon/0").then((res) => {
+                console.log('加载红色范围框数据:', res.data);
+                
+                if (!res.data || !res.data.points || res.data.points.length === 0) {
+                    console.warn('警告：红色范围框数据为空');
+                    return;
+                }
+                
+                // 清除旧的多边形和圆点
+                if (polygon) {
+                    fabricCanvas.remove(polygon);
+                }
+                circleList.forEach(circle => fabricCanvas.remove(circle));
+                circleList = [];
+                
+                // 调试：打印iframe和canvas尺寸
+                console.log('iframe尺寸:', iframe0.clientWidth, 'x', iframe0.clientHeight);
+                console.log('Canvas尺寸:', fabricCanvas.width, 'x', fabricCanvas.height);
+                console.log('streamWidth常量:', streamWidth);
+                
+                // 重新计算点的位置
+                points = [];
+                res.data.points.forEach((point, index) => {
+                    // 裁剪坐标到有效范围内（防止超出视频边界）
+                    const clampedPoint = {
+                        x: Math.max(0, Math.min(point.x, streamWidth)),
+                        y: Math.max(0, Math.min(point.y, streamHeight))
+                    };
+                    
+                    // 如果坐标被裁剪了，输出警告
+                    if (clampedPoint.x !== point.x || clampedPoint.y !== point.y) {
+                        console.warn(`点${index} 超出范围: 原始(${point.x},${point.y}) → 裁剪后(${clampedPoint.x},${clampedPoint.y})`);
+                    }
+                    
+                    const canvasPoint = streamPointToCanvasPoint(iframe0, clampedPoint);
+                    console.log(`点${index} - 原始:(${point.x},${point.y}) → Canvas:(${canvasPoint.x.toFixed(2)},${canvasPoint.y.toFixed(2)})`);
+                    points.push(canvasPoint);
+                });
+
+                // 创建新的多边形
+                polygon = new fabric.Polygon(
+                    points,
+                    {
+                        fill: false,
+                        stroke: 'red',
+                        strokeWidth: 4,
+                        objectCaching: false,
+                        selectable: false,
+                        evented: false,
+                    }
+                );
+
+                // 创建新的圆点（可拖动）
+                points.forEach((item, index) => {
+                    const circle = new fabric.Circle({
+                        left: item.x,
+                        top: item.y,
+                        strokeWidth: 2,
+                        radius: 8,  // 增大到8px，更容易点击
+                        fill: 'rgba(255, 0, 0, 0.7)',  // 红色半透明填充
+                        stroke: '#fff',  // 白色边框
+                        originX: 'center',
+                        originY: 'center',
+                        hasControls: false,
+                        hasBorders: false,
+                        selectable: true,  // 明确设置为可选择
+                        hoverCursor: 'move',  // 鼠标悬停时显示移动光标
+                        cid: `circle-${index}`
+                    });
+                    circleList.push(circle);
+                    console.log(`创建圆点 ${index}: 位置(${item.x.toFixed(2)}, ${item.y.toFixed(2)})`);
+                });
+
+                // 添加到canvas并渲染
+                fabricCanvas.add(polygon, ...circleList);
+                fabricCanvas.renderAll();
+                console.log('红色范围框已添加到canvas，点数:', points.length);
+            }).catch((error) => {
+                console.error('加载红色范围框失败:', error);
+            });
+        }
+        
+        // 保存到全局，以便在切换任务时重新加载
+        window.reloadStreamPolygon = loadAndDrawPolygon;
+        
+        // 初始加载
+        loadAndDrawPolygon();
+        
+        // 定期检查多边形是否还在canvas上，如果不在则重新加载
+        // 每3秒检查一次
+        setInterval(() => {
+            if (!polygon || !fabricCanvas.getObjects().includes(polygon)) {
+                console.warn('检测到多边形丢失，重新加载...');
+                loadAndDrawPolygon();
+            }
+        }, 3000);
+
+        // 监听对象移动事件
+        fabricCanvas.on('object:moving', (e) => {
+            let target = e.target;
+            if ('cid' in target && target.cid.match(RegExp(/circle-/))) {
+                let index = target.cid.split('-')[1];
+                if (polygon && polygon.points) {
+                    polygon.points[index].x = target.left;
+                    polygon.points[index].y = target.top;
+                    fabricCanvas.renderAll();
+                }
+            }
+        });
+
+        // 提交配置按钮
+        button.onclick = () => {
+            const streamPoints = [];
+
+            points.forEach((point, index) => {
+                streamPoints.push(canvasPointToStreamPoint(iframe0, point));
+            });
+
+            axios({
+                method: "post",
+                url: "stream/polygon/0",
+                headers: { 'Content-Type': 'application/json' },
+                data: { points: { ...streamPoints } }
+            }).then((res) => {
+                if (res.status == 200) {
+                    alert('配置提交成功！');
+                }
+            });
+        };
+        }
+
+        // ===== 基本信息页面功能 =====
+        let tempChart, resourceChart;
+        const MAX_DATA_POINTS = 20;
+
+        function initInfoPage() {
+            // 初始化温度图表
+            const tempCtx = document.getElementById('tempChart').getContext('2d');
+            tempChart = new Chart(tempCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '芯片温度',
+                        data: [],
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 0,
+                            max: 100
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+
+            // 初始化资源使用率图表
+            const resourceCtx = document.getElementById('resourceChart').getContext('2d');
+            resourceChart = new Chart(resourceCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'CPU 使用率',
+                            data: [],
+                            borderColor: 'rgb(255, 99, 132)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                            tension: 0.4,
+                            fill: false
+                        },
+                        {
+                            label: 'NPU 使用率',
+                            data: [],
+                            borderColor: 'rgb(54, 162, 235)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                            tension: 0.4,
+                            fill: false
+                        },
+                        {
+                            label: 'VPU 使用率',
+                            data: [],
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                            tension: 0.4,
+                            fill: false
+                        },
+                        {
+                            label: '内存使用率',
+                            data: [],
+                            borderColor: 'rgb(255, 206, 86)',
+                            backgroundColor: 'rgba(255, 206, 86, 0.1)',
+                            tension: 0.4,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            min: 0,
+                            max: 100
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+
+            // 获取初始设备信息
+            getDeviceInfo();
+            
+            // 立即更新一次数据
+            updateData();
+            
+            // 每2秒更新一次数据
+            setInterval(updateData, 2000);
+        }
+
+        // 更新图表数据
+        function updateChartData(chart, label, ...values) {
+            chart.data.labels.push(label);
+            
+            values.forEach((value, index) => {
+                chart.data.datasets[index].data.push(value);
+            });
+
+            if (chart.data.labels.length > MAX_DATA_POINTS) {
+                chart.data.labels.shift();
+                chart.data.datasets.forEach(dataset => {
+                    dataset.data.shift();
+                });
+            }
+
+            chart.update('none');
+        }
+
+        // 获取芯片温度
+        async function getChipTemp() {
+            try {
+                const response = await axios.get('/api/chip_temp');
+                return response.data.temperature;
+            } catch (error) {
+                console.error('获取芯片温度失败:', error);
+                return 50;
+            }
+        }
+
+        // 获取系统资源使用率
+        async function getSystemResources() {
+            try {
+                // 获取CPU和内存
+                const resourceResponse = await axios.get('/api/system_resources');
+                
+                // 获取真实的NPU和VPU使用率
+                let npuUsage = 0;
+                let vpuUsage = 0;
+                try {
+                    const npuResponse = await axios.get('/api/system/npu');
+                    if (npuResponse.data.status === 'success') {
+                        npuUsage = npuResponse.data.npuUsage || 0;
+                        vpuUsage = npuResponse.data.vpuUsage || 0;
+                    }
+                } catch (npuError) {
+                    console.error('获取NPU/VPU使用率失败:', npuError);
+                }
+                
+                return {
+                    cpu: resourceResponse.data.cpu || 0,
+                    npu: npuUsage,
+                    vpu: vpuUsage,
+                    memory: resourceResponse.data.memory || 0
+                };
+            } catch (error) {
+                console.error('获取系统资源失败:', error);
+                return { cpu: 0, npu: 0, vpu: 0, memory: 0 };
+            }
+        }
+
+        // 获取设备信息
+        async function getDeviceInfo() {
+            try {
+                const response = await axios.get('/api/device_info');
+                const data = response.data;
+                
+                document.getElementById('deviceId').textContent = data.deviceId || '-';
+                document.getElementById('storageInfo').textContent = data.storage || '-';
+                document.getElementById('systemVersion').textContent = data.systemVersion || '-';
+                document.getElementById('softwareVersion').textContent = data.softwareVersion || '-';
+                document.getElementById('gpsInfo').textContent = data.gps || '-';
+            } catch (error) {
+                console.error('获取设备信息失败:', error);
+            }
+        }
+
+        // 更新系统时间
+        function updateSystemTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleString('zh-CN', { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit',
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: false 
+            });
+            document.getElementById('systemTime').textContent = timeStr;
+        }
+
+        // 定时更新数据
+        async function updateData() {
+            if (!tempChart || !resourceChart) return;
+            
+            const now = new Date();
+            const timeLabel = now.toLocaleTimeString('zh-CN', { hour12: false });
+
+            // 获取芯片温度
+            const temp = await getChipTemp();
+            document.getElementById('chipTemp').textContent = temp.toFixed(1) + ' ℃';
+            updateChartData(tempChart, timeLabel, temp);
+
+            // 获取系统资源
+            const resources = await getSystemResources();
+            updateChartData(resourceChart, timeLabel, resources.cpu, resources.npu, resources.vpu, resources.memory);
+
+            // 更新系统时间
+            updateSystemTime();
+        }
+
+        // 查询设备信息
+        function queryDeviceInfo() {
+            getDeviceInfo();
+            alert('设备信息已刷新');
+        }
+
+        // 更新固件
+        function updateFirmware() {
+            if (confirm('确定要更新固件吗？')) {
+                alert('固件更新功能开发中...');
+            }
+        }
+
+        // 重启设备
+        function rebootDevice() {
+            if (confirm('确定要重启设备吗？')) {
+                axios.post('/api/reboot').then(() => {
+                    alert('设备正在重启...');
+                }).catch(error => {
+                    alert('重启失败: ' + error.message);
+                });
+            }
+        }
+
+        // Bootstrap tooltip 初始化
+        (() => {
+            'use strict'
+            const tooltipTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            tooltipTriggerList.forEach(tooltipTriggerEl => {
+                new bootstrap.Tooltip(tooltipTriggerEl)
+            })
+        })();
+    </script>
+</body>
+
+</html>

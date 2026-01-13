@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>网络配置页面</title>
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <style>
+        html,
+        body {
+            margin: 0;
+            height: 100%;
+            background-color: #f8f9fa;
+            overflow: hidden;
+        }
+
+        /* 顶部栏样式 */
+       .top-bar {
+            background-color: #343a40;
+            color: #fff;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+       .setting-container {
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            margin-top: 0px;
+            height: calc(100% - 60px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 30px;
+        }
+
+       .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #555;
+        }
+
+       .input-group {
+            width: 300px;
+        }
+
+       .btn {
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+       .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+       .btn-primary:hover {
+            background-color: #0069d9;
+            border-color: #0062cc;
+        }
+
+       .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+
+       .btn-secondary:hover {
+            background-color: #5a6268;
+            border-color: #545b62;
+        }
+
+       .btn-container {
+            margin-top: 20px;
+            display: flex;
+        }
+
+        /* 提示信息样式 */
+       .alert-message {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 18px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="top-bar">
+        <span>网络配置</span>
+        <button class="btn btn-secondary" onclick="window.location.href='index1.html'">返回</button>
+    </div>
+    <div class="setting-container">
+        <form>
+            <div class="form-group">
+                <label for="ipAddress">IP 地址：</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="ipAddress" placeholder="输入 IP 地址">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="subnetMask">子网掩码：</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="subnetMask" placeholder="输入子网掩码">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="gateway">网关：</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="gateway" placeholder="输入网关地址">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="dnsServers">DNS 服务器：</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="dnsServers" placeholder="输入 DNS 服务器地址">
+                </div>
+            </div>
+            <div class="btn-container">
+                <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
+            </div>
+        </form>
+    </div>
+    <div id="loadingMessage" class="alert-message" style="display:none;">正在保存配置，请稍候……</div>
+    <div id="alertMessage" class="alert-message">配置已保存，正在重启网络服务，请稍候……</div>
+    <script>
+        async function saveSettings() {
+            // 显示加载状态
+            document.getElementById('loadingMessage').style.display = 'block';
+
+            // 获取用户输入的值
+            var ipAddress = document.getElementById('ipAddress').value;
+            var subnetMask = document.getElementById('subnetMask').value;
+            var gateway = document.getElementById('gateway').value;
+            var dnsServers = document.getElementById('dnsServers').value.split(',');
+
+            try {
+                // 发送异步请求并等待响应
+                const response = await fetch('/save_network_config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        ipAddress: ipAddress,
+                        subnetMask: subnetMask,
+                        gateway: gateway,
+                        dnsServers: dnsServers
+                    })
+                });
+
+                const data = await response.text();
+                if (data === 'Configuration saved successfully and applied to board.') {
+                    document.getElementById('alertMessage').style.display = 'block';
+                    // 设置定时器在 5 秒后隐藏提示信息
+                    setTimeout(() => {
+                        document.getElementById('alertMessage').style.display = 'none';
+                    }, 5000);
+                    // 隐藏加载状态
+                    document.getElementById('loadingMessage').style.display = 'none';
+                } else {
+                    alert('保存配置时出现错误。');
+                    // 隐藏加载状态
+                    document.getElementById('loadingMessage').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('发生错误，请检查控制台。');
+                // 隐藏加载状态
+                document.getElementById('loadingMessage').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+
+</html>

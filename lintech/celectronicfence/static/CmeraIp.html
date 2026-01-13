@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>通道管理</title>
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" href="fontawesome-all.min.css">
+    <script src="axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 95%;
+            width: 100%;
+            margin: 0 auto;
+        }
+        
+        @media (min-width: 1400px) {
+            .container {
+                max-width: 1800px;
+            }
+        }
+
+        /* 头部区域 */
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title i {
+            color: #4a9eff;
+            font-size: 28px;
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        /* 通道列表 */
+        .channels-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .channels-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .channels-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .channels-table th {
+            padding: 18px 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .channels-table tbody tr {
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+
+        .channels-table tbody tr:hover {
+            background: #f8f9ff;
+        }
+
+        .channels-table td {
+            padding: 18px 20px;
+            color: #666;
+        }
+
+        .channel-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 15px;
+        }
+
+        .channel-url {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #666;
+            max-width: 400px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .channel-resolution {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .channel-assignment {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .channel-assignment.assignment-1 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .channel-assignment.assignment-2 {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        /* 状态标签 */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-configured {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-error,
+        .status-invalid {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-checking {
+            background: #e7f3ff;
+            color: #004085;
+        }
+
+        .status-badge i {
+            font-size: 8px;
+        }
+
+        /* 操作按钮 */
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-action {
+            border: none;
+            background: transparent;
+            color: #666;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .btn-edit:hover {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .btn-delete:hover {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 25px 30px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-title i {
+            color: #667eea;
+        }
+
+        .btn-close {
+            background: transparent;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .btn-close:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            color: #ddd;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            color: #999;
+        }
+
+        /* 协议选择器 */
+        .protocol-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .protocol-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            color: #666;
+        }
+
+        .protocol-btn.active {
+            border-color: #667eea;
+            background: #f0f4ff;
+            color: #667eea;
+        }
+
+        .protocol-btn:hover {
+            border-color: #667eea;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <div class="header-title">
+                <i class="fas fa-th-large"></i>
+                通道管理
+            </div>
+            <button class="btn-add" onclick="openAddModal()">
+                <i class="fas fa-plus"></i>
+                新增通道
+            </button>
+        </div>
+
+        <!-- 通道列表 -->
+        <div class="channels-container">
+            <table class="channels-table">
+                <thead>
+                    <tr>
+                        <th>相机编号</th>
+                        <th>视频地址</th>
+                        <th>分配通道</th>
+                        <th>通道状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="channelsTableBody">
+                    <!-- 动态加载 -->
+                </tbody>
+            </table>
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <i class="fas fa-video-slash"></i>
+                <h3>暂无通道</h3>
+                <p>点击右上角"新增通道"按钮添加您的第一个通道</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增/编辑通道模态框 -->
+    <div class="modal" id="channelModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fas fa-plus-circle"></i>
+                    <span id="modalTitle">新增通道</span>
+                </div>
+                <button class="btn-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="channelForm">
+                    <div class="form-group">
+                        <label class="form-label">探测协议</label>
+                        <div class="protocol-selector">
+                            <button type="button" class="protocol-btn active" data-protocol="manual">手动填写</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">相机编号</label>
+                        <input type="text" class="form-control" id="channelName" placeholder="例如：180度" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">视频地址</label>
+                        <input type="text" class="form-control" id="channelUrl" placeholder="rtsp://admin:ABCD0102@192.168.1.208:554/Streaming/Channels/101" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">分配给通道</label>
+                        <select class="form-select" id="channelAssignment" required>
+                            <option value="">请选择通道</option>
+                            <option value="1">通道 1 (主通道)</option>
+                            <option value="2">通道 2 (副通道)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">相机描述</label>
+                        <input type="text" class="form-control" id="channelDesc" placeholder="例如：前门监控">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">国标28181通道编号</label>
+                        <input type="text" class="form-control" id="channelGb28181" placeholder="例如：34020000001320000001">
+                    </div>
+
+                    <input type="hidden" id="channelId">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveChannel()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 通道数据
+        let channels = [];
+        let editingChannelId = null;
+
+        // 页面加载时获取通道列表
+        window.onload = function() {
+            loadChannels();
+        };
+
+        // 加载通道列表
+        function loadChannels() {
+            axios.get('/api/channels')
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        channels = response.data.channels || [];
+                        renderChannels();
+                    } else {
+                        console.error('加载通道失败:', response.data.message);
+                        channels = [];
+                        renderChannels();
+                    }
+                })
+                .catch(error => {
+                    console.error('加载通道失败:', error);
+                    channels = [];
+                    renderChannels();
+                });
+        }
+
+        // 渲染通道列表
+        function renderChannels() {
+            const tbody = document.getElementById('channelsTableBody');
+            const emptyState = document.getElementById('emptyState');
+
+            if (channels.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            tbody.innerHTML = channels.map(channel => `
+                <tr id="channel-row-${channel.id}">
+                    <td><span class="channel-name">${channel.name}</span></td>
+                    <td><span class="channel-url" title="${channel.url}">${channel.url}</span></td>
+                    <td>${getChannelAssignmentBadge(channel.channelAssignment)}</td>
+                    <td>
+                        <span class="status-badge status-checking" id="status-${channel.id}">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            检测中...
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn-action btn-edit" onclick="editChannel(${channel.id})" title="编辑">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-action btn-delete" onclick="deleteChannel(${channel.id})" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+            
+            // 渲染完成后，开始检测每个通道的状态
+            channels.forEach(channel => {
+                checkChannelStatus(channel.id, channel.url);
+            });
+        }
+
+        // 获取通道分配徽章
+        function getChannelAssignmentBadge(assignment) {
+            if (assignment === '1') {
+                return '<span class="channel-assignment assignment-1"><i class="fas fa-video"></i> 通道 1</span>';
+            } else if (assignment === '2') {
+                return '<span class="channel-assignment assignment-2"><i class="fas fa-video"></i> 通道 2</span>';
+            } else {
+                return '<span class="channel-resolution">-</span>';
+            }
+        }
+
+        // 检测通道状态
+        function checkChannelStatus(channelId, url) {
+            console.log(`开始检测通道 ${channelId}, URL: ${url}`);
+            
+            axios.post('/api/channels/check', { url: url })
+                .then(response => {
+                    console.log(`通道 ${channelId} 检测响应:`, response.data);
+                    
+                    if (response.data.status === 'success') {
+                        const statusElement = document.getElementById(`status-${channelId}`);
+                        if (statusElement) {
+                            const status = response.data.streamStatus;
+                            const message = response.data.message;
+                            const resolution = response.data.resolution;
+                            const debug = response.data.debug;
+                            
+                            // 如果有调试信息，输出到控制台
+                            if (debug) {
+                                console.log(`调试信息:`, debug);
+                            }
+                            
+                            // 更新状态显示
+                            statusElement.className = `status-badge status-${status}`;
+                            
+                            let statusIcon = '<i class="fas fa-circle"></i>';
+                            if (status === 'active') {
+                                statusIcon = '<i class="fas fa-check-circle"></i>';
+                            } else if (status === 'error' || status === 'invalid') {
+                                statusIcon = '<i class="fas fa-exclamation-circle"></i>';
+                            }
+                            
+                            let statusText = getStatusText(status);
+                            if (resolution) {
+                                statusText += ` (${resolution})`;
+                            }
+                            
+                            statusElement.innerHTML = `${statusIcon} ${statusText}`;
+                            
+                            // 更新本地数据
+                            const channelIndex = channels.findIndex(c => c.id === channelId);
+                            if (channelIndex !== -1) {
+                                channels[channelIndex].status = status;
+                                channels[channelIndex].resolution = resolution;
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error(`检测通道 ${channelId} 状态失败:`, error);
+                    const statusElement = document.getElementById(`status-${channelId}`);
+                    if (statusElement) {
+                        statusElement.className = 'status-badge status-error';
+                        statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i> 检测失败';
+                    }
+                });
+        }
+
+        // 获取状态文本
+        function getStatusText(status) {
+            const statusMap = {
+                'active': '连接正常',
+                'inactive': '无法访问',
+                'error': '连接失败',
+                'invalid': '地址无效',
+                'configured': '已配置'
+            };
+            return statusMap[status] || '未知状态';
+        }
+
+        // 打开新增模态框
+        function openAddModal() {
+            editingChannelId = null;
+            document.getElementById('modalTitle').textContent = '新增通道';
+            document.getElementById('channelForm').reset();
+            document.getElementById('channelId').value = '';
+            document.getElementById('channelModal').classList.add('show');
+        }
+
+        // 编辑通道
+        function editChannel(id) {
+            const channel = channels.find(c => c.id === id);
+            if (!channel) return;
+
+            editingChannelId = id;
+            document.getElementById('modalTitle').textContent = '编辑通道';
+            document.getElementById('channelName').value = channel.name;
+            document.getElementById('channelUrl').value = channel.url;
+            document.getElementById('channelAssignment').value = channel.channelAssignment || '';
+            document.getElementById('channelDesc').value = channel.description || '';
+            document.getElementById('channelGb28181').value = channel.gb28181 || '';
+            document.getElementById('channelId').value = id;
+            document.getElementById('channelModal').classList.add('show');
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('channelModal').classList.remove('show');
+        }
+
+        // 保存通道
+        function saveChannel() {
+            const name = document.getElementById('channelName').value.trim();
+            const url = document.getElementById('channelUrl').value.trim();
+            const channelAssignment = document.getElementById('channelAssignment').value;
+            const description = document.getElementById('channelDesc').value.trim();
+            const gb28181 = document.getElementById('channelGb28181').value.trim();
+
+            if (!name || !url) {
+                alert('请填写相机编号和视频地址');
+                return;
+            }
+
+            if (!channelAssignment) {
+                alert('请选择分配给哪个通道');
+                return;
+            }
+
+            const channelData = {
+                name,
+                url,
+                channelAssignment,
+                description,
+                gb28181,
+                status: 'configured'
+            };
+
+            if (editingChannelId) {
+                // 编辑模式
+                axios.put(`/api/channels/${editingChannelId}`, channelData)
+                    .then(response => {
+                        if (response.data.status === 'success') {
+                            alert('通道更新成功');
+                            closeModal();
+                            loadChannels();
+                        } else {
+                            alert('通道更新失败: ' + response.data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('更新通道失败:', error);
+                        alert('通道更新失败，请检查网络连接');
+                    });
+            } else {
+                // 新增模式
+                axios.post('/api/channels', channelData)
+                    .then(response => {
+                        if (response.data.status === 'success') {
+                            alert('通道添加成功');
+                            closeModal();
+                            loadChannels();
+                        } else {
+                            alert('通道添加失败: ' + response.data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('添加通道失败:', error);
+                        alert('通道添加失败，请检查网络连接');
+                    });
+            }
+        }
+
+        // 删除通道
+        function deleteChannel(id) {
+            if (!confirm('确定要删除这个通道吗？')) {
+                return;
+            }
+
+            axios.delete(`/api/channels/${id}`)
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        alert('通道删除成功');
+                        loadChannels();
+                    } else {
+                        alert('通道删除失败: ' + response.data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('删除通道失败:', error);
+                    alert('通道删除失败，请检查网络连接');
+                });
+        }
+
+        // 点击模态框外部关闭
+        document.getElementById('channelModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+
+</html>

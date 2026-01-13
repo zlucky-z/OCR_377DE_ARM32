@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网络配置</title>
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" href="fontawesome-all.min.css">
+    <script src="axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 95%;
+            width: 100%;
+            margin: 0 auto;
+        }
+        
+        @media (min-width: 1400px) {
+            .container {
+                max-width: 1800px;
+            }
+        }
+
+        /* 头部区域 */
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title i {
+            color: #4a9eff;
+            font-size: 28px;
+        }
+
+        /* 网卡配置容器 */
+        .network-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .network-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title i {
+            font-size: 24px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-connected .status-dot {
+            background: #4caf50;
+        }
+
+        .status-disconnected .status-dot {
+            background: #ff5252;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .form-label i {
+            color: #667eea;
+            margin-right: 6px;
+        }
+
+        .form-control, .form-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus, .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-control:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .form-select {
+            background: white;
+            cursor: pointer;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        /* 按钮区域 */
+        .action-buttons {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* 帮助提示 */
+        .help-text {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        /* 警告提示 */
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: start;
+            gap: 12px;
+        }
+
+        .warning-box i {
+            color: #ffc107;
+            font-size: 20px;
+            margin-top: 2px;
+        }
+
+        .warning-content h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 5px;
+        }
+
+        .warning-content p {
+            font-size: 13px;
+            color: #856404;
+            margin: 0;
+        }
+
+        /* Loading状态 */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <div class="header-title">
+                <i class="fas fa-network-wired"></i>
+                网络配置
+            </div>
+        </div>
+
+        <!-- 警告提示 -->
+        <div class="warning-box">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div class="warning-content">
+                <h4>重要提示</h4>
+                <p>修改网络配置后需要应用才能生效。请确保配置正确，避免无法访问设备。建议在修改前记录当前配置。</p>
+            </div>
+        </div>
+
+        <!-- 网卡配置 -->
+        <div class="network-cards">
+            <!-- eth0 网卡 -->
+            <div class="network-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-ethernet"></i>
+                        eth0 (主网口)
+                    </div>
+                    <div class="status-indicator" id="eth0Status">
+                        <div class="status-dot"></div>
+                        <span>检测中...</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-cog"></i>
+                            DHCP
+                        </label>
+                        <select class="form-select" id="eth0Dhcp" onchange="toggleDhcp('eth0')">
+                            <option value="no">手动配置</option>
+                            <option value="yes">自动获取(DHCP)</option>
+                        </select>
+                    </div>
+
+                    <div id="eth0ManualConfig">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-network-wired"></i>
+                                IP地址/子网掩码
+                            </label>
+                            <input type="text" class="form-control" id="eth0Address" placeholder="例如: 192.168.1.231/24">
+                            <div class="help-text">格式: IP地址/子网掩码位数</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-route"></i>
+                                网关
+                            </label>
+                            <input type="text" class="form-control" id="eth0Gateway" placeholder="例如: 192.168.1.1">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-server"></i>
+                                DNS服务器
+                            </label>
+                            <input type="text" class="form-control" id="eth0Dns" placeholder="例如: 8.8.8.8">
+                            <div class="help-text">多个DNS用空格分隔</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- eth1 网卡 -->
+            <div class="network-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-ethernet"></i>
+                        eth1 (副网口)
+                    </div>
+                    <div class="status-indicator" id="eth1Status">
+                        <div class="status-dot"></div>
+                        <span>检测中...</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-cog"></i>
+                            DHCP
+                        </label>
+                        <select class="form-select" id="eth1Dhcp" onchange="toggleDhcp('eth1')">
+                            <option value="no">手动配置</option>
+                            <option value="yes">自动获取(DHCP)</option>
+                        </select>
+                    </div>
+
+                    <div id="eth1ManualConfig">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-network-wired"></i>
+                                IP地址/子网掩码
+                            </label>
+                            <input type="text" class="form-control" id="eth1Address" placeholder="例如: 192.168.150.1/24">
+                            <div class="help-text">格式: IP地址/子网掩码位数</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-route"></i>
+                                网关
+                            </label>
+                            <input type="text" class="form-control" id="eth1Gateway" placeholder="例如: 192.168.150.1">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-server"></i>
+                                DNS服务器
+                            </label>
+                            <input type="text" class="form-control" id="eth1Dns" placeholder="例如: 8.8.8.8">
+                            <div class="help-text">多个DNS用空格分隔</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="action-buttons">
+            <button class="btn btn-secondary" onclick="loadNetworkConfig()">
+                <i class="fas fa-sync-alt"></i>
+                重新加载
+            </button>
+            <button class="btn btn-primary" onclick="saveNetworkConfig()">
+                <i class="fas fa-save"></i>
+                保存并应用
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading遮罩 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>正在应用网络配置，请稍候...</p>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时获取网络配置和状态
+        window.onload = function() {
+            loadNetworkConfig();
+            checkNetworkStatus();
+            // 每5秒检测一次网络状态
+            setInterval(checkNetworkStatus, 5000);
+        };
+
+        // 切换DHCP模式
+        function toggleDhcp(iface) {
+            const dhcpValue = document.getElementById(iface + 'Dhcp').value;
+            const manualConfig = document.getElementById(iface + 'ManualConfig');
+            
+            if (dhcpValue === 'yes') {
+                manualConfig.style.display = 'none';
+                // 禁用手动配置字段
+                document.getElementById(iface + 'Address').disabled = true;
+                document.getElementById(iface + 'Gateway').disabled = true;
+                document.getElementById(iface + 'Dns').disabled = true;
+            } else {
+                manualConfig.style.display = 'block';
+                // 启用手动配置字段
+                document.getElementById(iface + 'Address').disabled = false;
+                document.getElementById(iface + 'Gateway').disabled = false;
+                document.getElementById(iface + 'Dns').disabled = false;
+            }
+        }
+
+        // 加载网络配置
+        function loadNetworkConfig() {
+            axios.get('/api/network/config')
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        const config = response.data.config;
+                        
+                        // 配置eth0
+                        if (config.eth0) {
+                            document.getElementById('eth0Dhcp').value = config.eth0.dhcp4 || 'no';
+                            if (config.eth0.addresses && config.eth0.addresses.length > 0) {
+                                document.getElementById('eth0Address').value = config.eth0.addresses[0];
+                            }
+                            if (config.eth0.gateway4) {
+                                document.getElementById('eth0Gateway').value = config.eth0.gateway4;
+                            }
+                            if (config.eth0.nameservers && config.eth0.nameservers.addresses) {
+                                document.getElementById('eth0Dns').value = config.eth0.nameservers.addresses.join(' ');
+                            }
+                            toggleDhcp('eth0');
+                        }
+                        
+                        // 配置eth1
+                        if (config.eth1) {
+                            document.getElementById('eth1Dhcp').value = config.eth1.dhcp4 || 'no';
+                            if (config.eth1.addresses && config.eth1.addresses.length > 0) {
+                                document.getElementById('eth1Address').value = config.eth1.addresses[0];
+                            }
+                            if (config.eth1.gateway4) {
+                                document.getElementById('eth1Gateway').value = config.eth1.gateway4;
+                            }
+                            if (config.eth1.nameservers && config.eth1.nameservers.addresses) {
+                                document.getElementById('eth1Dns').value = config.eth1.nameservers.addresses.join(' ');
+                            }
+                            toggleDhcp('eth1');
+                        }
+                    }
+                })
+                // .catch(error => {
+                //     console.error('加载网络配置失败:', error);
+                //     alert('加载网络配置失败，请检查网络连接');
+                // });
+        }
+
+        // 检测网络状态
+        function checkNetworkStatus() {
+            axios.get('/api/network/status')
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        const status = response.data.interfaces;
+                        
+                        // 更新eth0状态
+                        updateStatusIndicator('eth0', status.eth0);
+                        
+                        // 更新eth1状态
+                        updateStatusIndicator('eth1', status.eth1);
+                    }
+                })
+                .catch(error => {
+                    console.error('检测网络状态失败:', error);
+                });
+        }
+
+        // 更新状态指示器
+        function updateStatusIndicator(iface, status) {
+            const statusElement = document.getElementById(iface + 'Status');
+            if (!statusElement) return;
+            
+            if (status && status.connected) {
+                statusElement.className = 'status-indicator status-connected';
+                statusElement.innerHTML = `
+                    <div class="status-dot"></div>
+                    <span>已连接</span>
+                `;
+            } else {
+                statusElement.className = 'status-indicator status-disconnected';
+                statusElement.innerHTML = `
+                    <div class="status-dot"></div>
+                    <span>未连接</span>
+                `;
+            }
+        }
+
+        // 保存网络配置
+        function saveNetworkConfig() {
+            // 验证配置
+            const eth0Dhcp = document.getElementById('eth0Dhcp').value;
+            const eth1Dhcp = document.getElementById('eth1Dhcp').value;
+            
+            const config = {
+                eth0: {
+                    dhcp4: eth0Dhcp
+                },
+                eth1: {
+                    dhcp4: eth1Dhcp
+                }
+            };
+
+            // 如果是手动配置，添加IP地址等信息
+            if (eth0Dhcp === 'no') {
+                const eth0Address = document.getElementById('eth0Address').value.trim();
+                if (!eth0Address) {
+                    alert('请输入eth0的IP地址');
+                    return;
+                }
+                if (!validateIpCidr(eth0Address)) {
+                    alert('eth0的IP地址格式不正确，应为: IP/掩码位数 (例如: 192.168.1.231/24)');
+                    return;
+                }
+                
+                config.eth0.addresses = [eth0Address];
+                
+                const eth0Gateway = document.getElementById('eth0Gateway').value.trim();
+                if (eth0Gateway) {
+                    if (!validateIp(eth0Gateway)) {
+                        alert('eth0的网关地址格式不正确');
+                        return;
+                    }
+                    config.eth0.gateway4 = eth0Gateway;
+                }
+                
+                const eth0Dns = document.getElementById('eth0Dns').value.trim();
+                if (eth0Dns) {
+                    const dnsServers = eth0Dns.split(/\s+/);
+                    for (let dns of dnsServers) {
+                        if (!validateIp(dns)) {
+                            alert('eth0的DNS服务器地址格式不正确');
+                            return;
+                        }
+                    }
+                    config.eth0.nameservers = { addresses: dnsServers };
+                }
+            }
+
+            if (eth1Dhcp === 'no') {
+                const eth1Address = document.getElementById('eth1Address').value.trim();
+                if (!eth1Address) {
+                    alert('请输入eth1的IP地址');
+                    return;
+                }
+                if (!validateIpCidr(eth1Address)) {
+                    alert('eth1的IP地址格式不正确，应为: IP/掩码位数 (例如: 192.168.150.1/24)');
+                    return;
+                }
+                
+                config.eth1.addresses = [eth1Address];
+                
+                const eth1Gateway = document.getElementById('eth1Gateway').value.trim();
+                if (eth1Gateway) {
+                    if (!validateIp(eth1Gateway)) {
+                        alert('eth1的网关地址格式不正确');
+                        return;
+                    }
+                    config.eth1.gateway4 = eth1Gateway;
+                }
+                
+                const eth1Dns = document.getElementById('eth1Dns').value.trim();
+                if (eth1Dns) {
+                    const dnsServers = eth1Dns.split(/\s+/);
+                    for (let dns of dnsServers) {
+                        if (!validateIp(dns)) {
+                            alert('eth1的DNS服务器地址格式不正确');
+                            return;
+                        }
+                    }
+                    config.eth1.nameservers = { addresses: dnsServers };
+                }
+            }
+
+            // 确认保存
+            if (!confirm('确定要保存并应用网络配置吗？配置错误可能导致无法访问设备。')) {
+                return;
+            }
+
+            // 显示加载动画
+            document.getElementById('loadingOverlay').classList.add('show');
+
+            // 发送配置到后端
+            axios.post('/api/network/config', { config: config })
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        setTimeout(() => {
+                            document.getElementById('loadingOverlay').classList.remove('show');
+                            alert('网络配置已成功应用！');
+                            loadNetworkConfig();
+                        }, 3000);
+                    } else {
+                        document.getElementById('loadingOverlay').classList.remove('show');
+                        alert('网络配置失败: ' + response.data.message);
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loadingOverlay').classList.remove('show');
+                    console.error('保存网络配置失败:', error);
+                    alert('保存网络配置失败，请检查网络连接');
+                });
+        }
+
+        // 验证IP地址格式
+        function validateIp(ip) {
+            const pattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+            if (!pattern.test(ip)) return false;
+            
+            const parts = ip.split('.');
+            for (let part of parts) {
+                const num = parseInt(part);
+                if (num < 0 || num > 255) return false;
+            }
+            return true;
+        }
+
+        // 验证IP地址/CIDR格式
+        function validateIpCidr(ipCidr) {
+            const parts = ipCidr.split('/');
+            if (parts.length !== 2) return false;
+            
+            if (!validateIp(parts[0])) return false;
+            
+            const cidr = parseInt(parts[1]);
+            if (isNaN(cidr) || cidr < 0 || cidr > 32) return false;
+            
+            return true;
+        }
+    </script>
+</body>
+
+</html>

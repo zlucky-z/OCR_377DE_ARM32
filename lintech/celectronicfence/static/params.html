@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>参数配置</title>
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" href="fontawesome-all.min.css">
+    <script src="axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 95%;
+            width: 100%;
+            margin: 0 auto;
+        }
+        
+        @media (min-width: 1400px) {
+            .container {
+                max-width: 1800px;
+            }
+        }
+
+        /* 头部区域 */
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title i {
+            color: #667eea;
+            font-size: 28px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* 参数表格 */
+        .params-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .params-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .params-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .params-table th {
+            padding: 18px 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .params-table tbody tr {
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+
+        .params-table tbody tr:hover {
+            background: #f8f9ff;
+        }
+
+        .params-table td {
+            padding: 18px 20px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .param-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .param-key {
+            font-family: 'Courier New', monospace;
+            color: #667eea;
+            font-size: 13px;
+        }
+
+        /* 类型标签 */
+        .type-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .type-number {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .type-string {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .type-boolean {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .type-select {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        /* 参数值 */
+        .param-value {
+            font-weight: 500;
+            color: #333;
+        }
+
+        /* 操作按钮 */
+        .btn {
+            padding: 8px 18px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-edit {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-edit:hover {
+            background: #1976d2;
+            color: white;
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            overflow-y: auto;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            padding: 25px 30px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .btn-close {
+            background: transparent;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .btn-close:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .form-control, .form-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus, .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-control:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .form-help {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* 分组标题 */
+        .group-header {
+            background: #f8f9fa;
+            padding: 12px 20px;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <div class="header-title">
+                <i class="fas fa-cogs"></i>
+                参数配置
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="loadParams()">
+                    <i class="fas fa-sync-alt"></i>
+                    刷新
+                </button>
+                <button class="btn btn-primary" onclick="saveAllParams()">
+                    <i class="fas fa-save"></i>
+                    保存全部
+                </button>
+            </div>
+        </div>
+
+        <!-- 参数表格 -->
+        <div class="params-container">
+            <table class="params-table">
+                <thead>
+                    <tr>
+                        <th>参数功能</th>
+                        <th>参数描述</th>
+                        <th>参数标识</th>
+                        <th>类型</th>
+                        <th>参数值</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="paramsTableBody">
+                    <!-- 动态加载 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 编辑模态框 -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">编辑参数</div>
+                <button class="btn-close" onclick="closeEditModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <div class="form-group">
+                        <label class="form-label">参数功能</label>
+                        <input type="text" class="form-control" id="editName" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">参数描述</label>
+                        <input type="text" class="form-control" id="editDescription" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">参数标识</label>
+                        <input type="text" class="form-control" id="editKey" disabled>
+                    </div>
+                    <div class="form-group" id="editValueGroup">
+                        <label class="form-label">参数值</label>
+                        <!-- 动态生成输入控件 -->
+                        <div id="editValueContainer"></div>
+                        <div class="form-help" id="editHelp"></div>
+                    </div>
+                    <input type="hidden" id="editParamKey">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEditModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveParam()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 系统参数定义
+        const systemParams = [
+            {
+                key: "SizeKeepDiskAvailable",
+                name: "磁盘空间阈值",
+                description: "保持可用的磁盘空间大小(MB)",
+                type: "number",
+                value: 100,
+                group: "系统参数",
+                min: 10,
+                max: 10000,
+                help: "系统会自动清理旧文件以保持此空间可用"
+            },
+            {
+                key: "ModelThread",
+                name: "算法线程数",
+                description: "模型推理使用的线程数",
+                type: "number",
+                value: 4,
+                group: "系统参数",
+                min: 1,
+                max: 16,
+                help: "根据CPU核心数调整，建议不超过核心数"
+            },
+            {
+                key: "PolicyAbandon",
+                name: "解绑策略",
+                description: "超时自动解绑时间(秒)",
+                type: "number",
+                value: -1,
+                group: "系统参数",
+                min: -1,
+                max: 3600,
+                help: "-1表示不自动解绑"
+            },
+            {
+                key: "QualityOfPreview",
+                name: "视频预览质量",
+                description: "实时预览的视频质量级别",
+                type: "number",
+                value: 1,
+                group: "视频参数",
+                min: 1,
+                max: 10,
+                help: "1-10，数字越大质量越高"
+            },
+            {
+                key: "RecordKeepAlarmInfo",
+                name: "告警保存数量",
+                description: "保存的告警记录数量",
+                type: "number",
+                value: 1000,
+                group: "告警参数",
+                min: 100,
+                max: 10000,
+                help: "超出数量后会自动删除最旧的记录"
+            },
+            {
+                key: "RemoteInfo",
+                name: "远程上报地址",
+                description: "告警信息上报的远程服务器地址",
+                type: "string",
+                value: "",
+                group: "告警参数",
+                help: "例如: http://192.168.1.100:8080/api/alarm"
+            },
+            {
+                key: "ExamineMode",
+                name: "审核模式",
+                description: "是否启用人工审核模式",
+                type: "select",
+                value: "不审核",
+                options: ["不审核", "自动审核", "人工审核"],
+                group: "告警参数"
+            },
+            {
+                key: "WebServicePort",
+                name: "Web服务端口",
+                description: "HTTP服务监听端口",
+                type: "number",
+                value: 8088,
+                group: "网络参数",
+                min: 1024,
+                max: 65535,
+                help: "修改后需要重启服务生效"
+            },
+            {
+                key: "EnableAlarmNotification",
+                name: "是否开启告警通知",
+                description: "开启后会实时推送告警通知",
+                type: "boolean",
+                value: true,
+                group: "告警参数"
+            },
+            {
+                key: "WebSocketSvr",
+                name: "WebSocket服务地址",
+                description: "WebSocket服务器地址和端口",
+                type: "string",
+                value: "",
+                group: "网络参数",
+                help: "例如: ws://localhost:8089"
+            },
+            {
+                key: "EnableVideoRecord",
+                name: "是否开启视频录制",
+                description: "开启后会自动录制告警视频",
+                type: "boolean",
+                value: false,
+                group: "视频参数"
+            },
+            {
+                key: "Mp4RecorderEngine",
+                name: "录制器引擎",
+                description: "视频录制使用的编码引擎",
+                type: "select",
+                value: "MP4V2",
+                options: ["MP4V2", "FFMPEG", "OPENCV"],
+                group: "视频参数"
+            },
+            {
+                key: "CheckVideoUpload",
+                name: "校验视频上传",
+                description: "上传视频前是否进行完整性校验",
+                type: "boolean",
+                value: true,
+                group: "视频参数"
+            },
+            {
+                key: "RecordWithAudio",
+                name: "录制时包含音频",
+                description: "视频录制时是否包含音频流",
+                type: "boolean",
+                value: false,
+                group: "视频参数"
+            },
+            {
+                key: "MaxRecordDuration",
+                name: "最大录制时长",
+                description: "单个视频文件的最大录制时长(秒)",
+                type: "number",
+                value: 60,
+                group: "视频参数",
+                min: 10,
+                max: 600,
+                help: "建议不超过300秒"
+            },
+            {
+                key: "AlarmCooldownTime",
+                name: "告警冷却时间",
+                description: "同一事件再次告警的最小间隔(秒)",
+                type: "number",
+                value: 10,
+                group: "告警参数",
+                min: 0,
+                max: 300,
+                help: "避免频繁告警，0表示不限制"
+            }
+        ];
+
+        let params = [];
+
+        // 页面加载时初始化
+        window.onload = function() {
+            loadParams();
+        };
+
+        // 加载参数
+        function loadParams() {
+            axios.get('/api/params')
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        params = response.data.params || {};
+                        
+                        // 合并系统默认参数和已保存的参数
+                        systemParams.forEach(param => {
+                            if (params.hasOwnProperty(param.key)) {
+                                param.value = params[param.key];
+                            }
+                        });
+                        
+                        renderParams();
+                    }
+                })
+                .catch(error => {
+                    console.error('加载参数失败:', error);
+                    // 使用默认参数
+                    renderParams();
+                });
+        }
+
+        // 渲染参数列表
+        function renderParams() {
+            const tbody = document.getElementById('paramsTableBody');
+            
+            // 按分组组织参数
+            const groups = {};
+            systemParams.forEach(param => {
+                if (!groups[param.group]) {
+                    groups[param.group] = [];
+                }
+                groups[param.group].push(param);
+            });
+
+            let html = '';
+            for (const [groupName, groupParams] of Object.entries(groups)) {
+                html += `<tr><td colspan="6" class="group-header">${groupName}</td></tr>`;
+                
+                groupParams.forEach(param => {
+                    const typeClass = `type-${param.type}`;
+                    const typeText = getTypeText(param.type);
+                    const valueDisplay = formatValue(param.value, param.type);
+                    
+                    html += `
+                        <tr>
+                            <td><span class="param-name">${param.name}</span></td>
+                            <td>${param.description}</td>
+                            <td><span class="param-key">${param.key}</span></td>
+                            <td><span class="type-badge ${typeClass}">${typeText}</span></td>
+                            <td><span class="param-value">${valueDisplay}</span></td>
+                            <td>
+                                <button class="btn-edit" onclick="editParam('${param.key}')">
+                                    <i class="fas fa-edit"></i> 编辑
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            tbody.innerHTML = html;
+        }
+
+        // 获取类型文本
+        function getTypeText(type) {
+            const typeMap = {
+                'number': '数字',
+                'string': '字符串',
+                'boolean': '布尔',
+                'select': '选项'
+            };
+            return typeMap[type] || type;
+        }
+
+        // 格式化值显示
+        function formatValue(value, type) {
+            if (type === 'boolean') {
+                return value ? '是' : '否';
+            }
+            if (value === '' || value === null || value === undefined) {
+                return '<span style="color: #999;">未设置</span>';
+            }
+            return value;
+        }
+
+        // 编辑参数
+        function editParam(key) {
+            const param = systemParams.find(p => p.key === key);
+            if (!param) return;
+
+            document.getElementById('editName').value = param.name;
+            document.getElementById('editDescription').value = param.description;
+            document.getElementById('editKey').value = param.key;
+            document.getElementById('editParamKey').value = key;
+
+            const valueContainer = document.getElementById('editValueContainer');
+            const helpText = document.getElementById('editHelp');
+
+            // 根据类型生成不同的输入控件
+            if (param.type === 'boolean') {
+                valueContainer.innerHTML = `
+                    <select class="form-select" id="editValue">
+                        <option value="true" ${param.value === true ? 'selected' : ''}>是</option>
+                        <option value="false" ${param.value === false ? 'selected' : ''}>否</option>
+                    </select>
+                `;
+            } else if (param.type === 'select') {
+                let options = param.options.map(opt => 
+                    `<option value="${opt}" ${param.value === opt ? 'selected' : ''}>${opt}</option>`
+                ).join('');
+                valueContainer.innerHTML = `
+                    <select class="form-select" id="editValue">${options}</select>
+                `;
+            } else if (param.type === 'number') {
+                valueContainer.innerHTML = `
+                    <input type="number" class="form-control" id="editValue" 
+                           value="${param.value}" 
+                           min="${param.min || ''}" 
+                           max="${param.max || ''}">
+                `;
+            } else {
+                valueContainer.innerHTML = `
+                    <input type="text" class="form-control" id="editValue" value="${param.value}">
+                `;
+            }
+
+            helpText.textContent = param.help || '';
+
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        // 保存单个参数
+        function saveParam() {
+            const key = document.getElementById('editParamKey').value;
+            const param = systemParams.find(p => p.key === key);
+            if (!param) return;
+
+            let value = document.getElementById('editValue').value;
+
+            // 类型转换
+            if (param.type === 'boolean') {
+                value = value === 'true';
+            } else if (param.type === 'number') {
+                value = parseFloat(value);
+                if (isNaN(value)) {
+                    alert('请输入有效的数字');
+                    return;
+                }
+                if (param.min !== undefined && value < param.min) {
+                    alert(`值不能小于 ${param.min}`);
+                    return;
+                }
+                if (param.max !== undefined && value > param.max) {
+                    alert(`值不能大于 ${param.max}`);
+                    return;
+                }
+            }
+
+            // 更新参数值
+            param.value = value;
+            params[key] = value;
+
+            // 保存到服务器
+            axios.put(`/api/params/${key}`, { value: value })
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        alert('参数保存成功');
+                        closeEditModal();
+                        renderParams();
+                    } else {
+                        alert('保存失败: ' + response.data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('保存参数失败:', error);
+                    alert('保存失败，请检查网络连接');
+                });
+        }
+
+        // 保存全部参数
+        function saveAllParams() {
+            const paramsToSave = {};
+            systemParams.forEach(param => {
+                paramsToSave[param.key] = param.value;
+            });
+
+            axios.post('/api/params', { params: paramsToSave })
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        alert('全部参数保存成功');
+                    } else {
+                        alert('保存失败: ' + response.data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('保存参数失败:', error);
+                    alert('保存失败，请检查网络连接');
+                });
+        }
+
+        // 关闭编辑模态框
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('show');
+        }
+
+        // 点击模态框外部关闭
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+    </script>
+</body>
+
+</html>
